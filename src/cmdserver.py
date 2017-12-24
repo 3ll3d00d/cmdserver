@@ -83,14 +83,16 @@ def main(args=None):
                 import sys
                 if getattr(sys, 'frozen', False):
                     # pyinstaller lets you copy files to arbitrary locations under the _MEIPASS root dir
-                    uiRoot = sys._MEIPASS
+                    uiRoot = os.path.join(sys._MEIPASS, 'ui')
+                elif cfg.webappPath is not None:
+                    uiRoot = cfg.webappPath
                 else:
                     # release script moves the ui under the analyser package because setuptools doesn't seem to include
                     # files from outside the package
-                    uiRoot = os.path.dirname(__file__)
+                    uiRoot = os.path.join(os.path.dirname(__file__), 'ui')
                 logger.info('Serving ui from ' + str(uiRoot))
-                self.react = ReactApp(os.path.join(uiRoot, 'ui'))
-                self.static = static.File(os.path.join(uiRoot, 'ui', 'static'))
+                self.react = ReactApp(uiRoot)
+                self.static = static.File(os.path.join(uiRoot, 'static'))
                 self.icons = static.File(cfg.iconPath)
 
             def getChild(self, path, request):
@@ -102,6 +104,11 @@ def main(args=None):
                 :param request:
                 :return:
                 """
+                # allow CORS (CROSS-ORIGIN RESOURCE SHARING) for debug purposes
+                request.setHeader('Access-Control-Allow-Origin', '*')
+                request.setHeader('Access-Control-Allow-Methods', 'GET, PUT')
+                request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+                request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
                 if path == b'api':
                     request.prepath.pop()
                     request.postpath.insert(0, path)

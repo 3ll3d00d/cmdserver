@@ -17,6 +17,7 @@ class Config(object):
         self._port = self.config.get('port', defaultPort)
         self._serviceURL = 'http://' + self.getHostname() + ':' + str(self.getPort())
         self.commands = self.config.get('commands', {})
+        self.webappPath = self.config.get('webappPath', None)
         self.useTwisted = self.config.get('useTwisted', False)
 
     def ensureDirExists(self, dir):
