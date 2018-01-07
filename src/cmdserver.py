@@ -8,6 +8,8 @@ from command import Commands, Command
 from commandcontroller import CommandController
 from config import Config
 from playingnow import PlayingNow
+from tivo import Tivo
+from tivocontroller import TivoController
 
 API_PREFIX = '/api/1'
 
@@ -22,13 +24,18 @@ api = Api(app)
 cfg = Config('cmdserver')
 resourceArgs = {
     'commandController': CommandController(cfg),
+    'tivoController': TivoController()
 }
+
 # GET: gets the available commands
 api.add_resource(Commands, API_PREFIX + '/commands', resource_class_kwargs=resourceArgs)
 # PUT: executes a command
 api.add_resource(Command, API_PREFIX + '/commands/<command>', resource_class_kwargs=resourceArgs)
 # GET: gets the current state of the playback system
 api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=resourceArgs)
+# GET: available TIVOs
+# POST: send a command
+api.add_resource(Tivo, API_PREFIX + '/tivos', resource_class_kwargs=resourceArgs)
 
 def main(args=None):
     """ The main routine. """
