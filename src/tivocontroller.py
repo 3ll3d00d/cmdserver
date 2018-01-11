@@ -116,6 +116,7 @@ class Tivo(object):
         except Exception as e:
             logger.error(e)
             self._recordMessage('Failed to send ' + str(message) + ' - ' + str(e))
+            self.disconnect()
             raise e
 
     def sendIR(self, sent, *codes):
