@@ -23,7 +23,8 @@ class Tivo(Resource):
         if self._tivoController.hasTivo(name):
             try:
                 sent = self._tivoController.send(name, type, command)
-                return {'sent': sent, **payload}, 200
+                # sent: [] of commands, channel: current channel text, type, name, command
+                return {**sent, **payload}, 200
             except Exception as e:
                 return {'error': str(e), **payload}, 500
         else:

@@ -24,7 +24,8 @@ api = Api(app)
 cfg = Config('cmdserver')
 resourceArgs = {
     'commandController': CommandController(cfg),
-    'tivoController': TivoController()
+    'tivoController': TivoController(),
+    'config': cfg
 }
 
 # GET: gets the available commands

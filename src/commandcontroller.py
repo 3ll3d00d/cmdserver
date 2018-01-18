@@ -10,12 +10,18 @@ class CommandController(object):
     def __init__(self, config):
         actualCommands = {commandId: command for commandId, command in config.commands.items() if commandId != 'defaults'}
         defaults = config.commands['defaults'] if 'defaults' in config.commands else None
-        self._commands = {commandId: self._addDefaults(commandId, command) for commandId, command in actualCommands.items()}
+        self._commands = {commandId: self._addDefaults(commandId, command, defaults) for commandId, command in actualCommands.items()}
         self._launchers = {commandId: self._getLauncher(command, defaults) for commandId, command in actualCommands.items()}
 
-    def _addDefaults(self, commandId, command):
+    def _addDefaults(self, commandId, command, defaults):
         if 'icon' not in command:
             command['icon'] = commandId + '.ico'
+        if 'zoneId' not in command and 'zoneId' in defaults:
+            command['zoneId'] = defaults['zoneId']
+        if 'volume' not in command and 'volume' in defaults:
+            command['volume'] = defaults['volume']
+        if 'stopAll' not in command and 'stopAll' in defaults:
+            command['stopAll'] = defaults['stopAll']
         return command
 
     def _getLauncher(self, command, defaults):

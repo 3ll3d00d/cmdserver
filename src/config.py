@@ -17,6 +17,7 @@ class Config(object):
         self._port = self.config.get('port', defaultPort)
         self._serviceURL = 'http://' + self.getHostname() + ':' + str(self.getPort())
         self.commands = self.config.get('commands', {})
+        self.playingNowExe = self.config.get('playingNowExe', None)
         self.webappPath = self.config.get('webappPath', None)
         self.useTwisted = self.config.get('useTwisted', False)
 
@@ -96,7 +97,8 @@ class Config(object):
             'host': self.getDefaultHostname(),
             'useTwisted': False,
             'iconPath': str(Path.home()),
-            'commands': {}
+            'commands': {},
+            'playingNowExe': None
         }
 
     def _getConfigPath(self):

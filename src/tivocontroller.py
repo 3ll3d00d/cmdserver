@@ -77,6 +77,7 @@ class Tivo(object):
         self._tivo = tivo
         self._messages = [''] * 5
         self._messageIdx = 0
+        self.currentChannel = ''
         if ':' in tivo['address']:
             address, port = tivo['address'].split(':')
             try:
@@ -135,13 +136,13 @@ class Tivo(object):
                         self._send(toSend)
                 else:
                     raise ValueError('Unknown IR Code ' + each)
-        return sent
+        return {'channel': self.currentChannel, 'sent': sent}
 
     def setChannel(self, channel):
         """ Sends a single SETCH. """
         toSend = 'SETCH %s\r' % channel
         self._send(toSend)
-        return [toSend]
+        return {'channel': self.currentChannel, 'sent': [toSend]}
 
     def sendText(self, text):
         """ Expand a KEYBOARD command sequence for send(). """
@@ -155,7 +156,7 @@ class Tivo(object):
                 self._sendKeyboard(sent, SYMBOLS[ch])
             elif ch in SHIFT_SYMS:
                 self._sendKeyboard(sent, 'LSHIFT', SHIFT_SYMS[ch])
-        return sent
+        return {'channel': self.currentChannel, 'sent': sent}
 
     def _sendKeyboard(self, sent, *codes):
         for each in codes:
@@ -180,7 +181,7 @@ class Tivo(object):
             if not status:
                 self.disconnect()
             else:
-                self._recordMessage(status)
+                self.currentChannel = status
 
     def _disconnect0(self):
         if not self._sock:
@@ -231,7 +232,7 @@ class TivoController(object):
             raise ValueError('Unknown tivo ' + tivoName)
 
     def getTivos(self):
-        return [{**t._tivo.copy(), **{'connected': t._sock is not None, 'messages': t.getMessages()}} for t in self._tivos]
+        return [{**t._tivo.copy(), **{'connected': t._sock is not None, 'messages': t.getMessages(), 'channel': t.currentChannel}} for t in self._tivos]
 
     def _findTivos(self):
         class ZCListener:
