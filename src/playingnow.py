@@ -1,7 +1,9 @@
+import logging
 from flask_restful import Resource
 
 from plumbum import local
 
+logger = logging.getLogger('cmdserver.playingnow')
 
 class PlayingNow(Resource):
 
@@ -14,6 +16,7 @@ class PlayingNow(Resource):
     def get(self):
         playingNow = self._launcher.run(retcode=None)
         playingNowId = playingNow[0]
+        logger.debug("playingNow:" + str(playingNowId))
         if playingNowId in self._byPlayingNowId:
             return self._byPlayingNowId[playingNowId], 200
         elif playingNowId == 0:
