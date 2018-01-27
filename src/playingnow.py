@@ -18,8 +18,8 @@ class PlayingNow(Resource):
         playingNowId = playingNow[0]
         logger.debug("playingNow:" + str(playingNowId))
         if playingNowId in self._byPlayingNowId:
-            return self._byPlayingNowId[playingNowId], 200
+            return {'title': self._byPlayingNowId[playingNowId]}, 200
         elif playingNowId == 0:
-            return '', 200
+            return {'title': ''}, 200
         else:
-            return playingNowId, 500
+            return {'id': playingNowId}, 500

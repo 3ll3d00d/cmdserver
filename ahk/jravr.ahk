@@ -16,6 +16,13 @@ CloseIEIfNecessary()
 	}
 }
 
+KillProcessIfNecessary(Name) {
+	Process, Exist, %Name%
+	if (errorlevel) {
+		Process, Close, %Name%
+	}
+}
+
 IsSameSite(target, active) {
 	matchSite := SubStr(target, 9)
 	matchLen := StrLen(matchSite)
@@ -69,10 +76,7 @@ if (closeIE) {
 
 if (closeNetflix) {
 	if (A_OSVersion = "WIN_8.1") {
-		IfWinExist Netflix ahk_class Windows.UI.Core.CoreWindow ahk_exe Netflix.exe
-		{
-			WinClose Netflix ahk_class Windows.UI.Core.CoreWindow ahk_exe Netflix.exe
-		}
+		KillProcessIfNecessary("Netflix.exe")
 	} else if (substr(A_OSVersion, 1, 2) = 10) {
 		IfWinExist Netflix ahk_class ApplicationFrameWindow 
 		{
@@ -84,14 +88,8 @@ if (closeNetflix) {
 } 
 
 if (closeJR) {
-	; stop playback
-	Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 10002
 	; minimise
 	Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 10014
-	; set volume in IPC zone to 40%
-	Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC "10020`,40:2"
-	; set the active zone to IPC to enable volume hot keys
-	Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 10011`,2
 }
 
 if (closeMPC) {
@@ -105,18 +103,18 @@ if (!closeIE) {
 	targetUrl := ""
 	if (targetApp = "iplayer") {
 		targetUrl := "https://www.bbc.co.uk/iplayer"
-	} else if (targetApp = "4od") {
+	} else if (targetApp = "all4") {
 		targetUrl := "https://www.channel4.com/"
 	} else if (targetApp = "itv") {
 		targetUrl := "https://www.itv.com/"
-	} else if (targetApp = "prime") {
-		targetUrl := "https://www.amazon.com/Prime-Video/b?node=2676882011"
+	} else if (targetApp = "amazon") {
+		targetUrl := "https://www.amazon.co.uk/gp/video/watchlist"
 	}
 	if (targetUrl = "") {
 		MsgBox % "Unknown target " . targetApp
 	} else {
 		openIE := true
-		IfWinExist ahk_class IEFrame 
+		IfWinExist ahk_class IEFrame
 		{
 			WinActivate
 			WinWaitActive, ahk_class IEFrame, , 1
@@ -139,11 +137,7 @@ if (!closeNetflix) {
 }
 
 if (!closeJR) {
-	if (jriverActivity = "Music") {
-		Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 22001`,3
-	} else if (jriverActivity = "Film") {
-		Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 22001`,5
-	} else {
+	if (jriverActivity != "Film") {
 		; show playing now
 		Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 22001`,2
 	}

@@ -7,6 +7,13 @@ Getting Started
     conda install PyYAML
     conda install -c conda-forge plumbum
     conda install -c conda-forge netifaces
+ 
+pyinstaller
+-----------
+
+    conda install -c conda-forge pyinstaller
+    
+    
     
 Configuration
 -------------

@@ -45,8 +45,10 @@ IfWinExist ahk_class IEFrame
 } 
 
 if (A_OSVersion = "WIN_8.1") {
-	IfWinExist Netflix ahk_class Windows.UI.Core.CoreWindow ahk_exe Netflix.exe
-	{
+	Process, Exist, "Netflix.exe"
+	; this doesn't work
+;	IfWinExist Netflix ahk_class Windows.UI.Core.CoreWindow ahk_exe Netflix.exe
+	if (errorlevel) {
 		Exit, NETFLIX
 	}
 } else if (substr(A_OSVersion, 1, 2) = 10) {
