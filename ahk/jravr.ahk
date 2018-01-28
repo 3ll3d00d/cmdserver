@@ -64,6 +64,10 @@ if (targetApp = "Netflix") {
     closeIE := true
 	closeJR := true
 	closeNetflix := true
+} else if (targetApp = "CloseAll") {
+    closeIE := true
+	closeNetflix := true
+	closeMPC := true
 } else {
 	closeJR := true
 	closeNetflix := true
@@ -114,7 +118,7 @@ if (!closeIE) {
 		MsgBox % "Unknown target " . targetApp
 	} else {
 		openIE := true
-		IfWinExist ahk_class IEFrame
+		IfWinExist ahk_class IEFrame 
 		{
 			WinActivate
 			WinWaitActive, ahk_class IEFrame, , 1

@@ -45,12 +45,12 @@ IfWinExist ahk_class IEFrame
 } 
 
 if (A_OSVersion = "WIN_8.1") {
-	Process, Exist, "Netflix.exe"
-	; this doesn't work
-;	IfWinExist Netflix ahk_class Windows.UI.Core.CoreWindow ahk_exe Netflix.exe
-	if (errorlevel) {
-		Exit, NETFLIX
-	}
+    proc := ""
+    for process in ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process WHERE Name = 'Netflix.exe'")
+        proc++
+    if (proc != "") {
+        Exit, NETFLIX
+    }
 } else if (substr(A_OSVersion, 1, 2) = 10) {
 	IfWinExist Netflix ahk_class ApplicationFrameWindow 
 	{
@@ -61,4 +61,3 @@ IfWinExist ahk_class MPC-BE
 {
 	Exit, TIVO
 }
-
