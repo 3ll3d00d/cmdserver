@@ -38,5 +38,8 @@ class CommandController(object):
         command = self.getCommand(commandId)
         if command is not None:
             result = self._launchers[commandId]['executor'].run(retcode=None)
+            logger.info('Executed command ' + commandId + ', result is ' + str(result[0]))
+            logger.info('Command output: ')
+            logger.info(result[1])
             return result
         return None

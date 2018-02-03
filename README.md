@@ -35,10 +35,10 @@ Create a spec file changing the paths as appropriate
 	exe = EXE(pyz,
 			  a.scripts,
 			  a.binaries,
-			  Tree('c:\\Users\\mattk\github\jravr\\build', prefix='ui'),
+			  Tree('c:\\Users\\mattk\github\ezmote\\build', prefix='ui'),
 			  a.zipfiles,
 			  a.datas,
-			  name='jravr_server',
+			  name='ezmote_server',
 			  debug=False,
 			  strip=False,
 			  upx=True,
@@ -51,7 +51,7 @@ Build the UI
     
 Build the exe
 
-    pyinstaller --clean --log-level=INFO jravr.spec
+    pyinstaller --clean --log-level=INFO ezmote.spec
 
     
 Configuration
@@ -64,7 +64,7 @@ Example config
     # command title must be a zone name if it is played by jriver
     commands:
       defaults:
-        exe: 'x:\mc_scripts\jravr.exe'
+        exe: 'x:\mc_scripts\ezmote.exe'
         volume: 0.40
         stopAll: true
       close:
@@ -154,4 +154,4 @@ Example config
     port: 53199
     useTwisted: true
     # use for debug
-    webappPath: 'C:\Users\mattk\github\jravr\build'
+    webappPath: 'C:\Users\mattk\github\ezmote\build'

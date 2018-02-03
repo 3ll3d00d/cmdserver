@@ -105,3 +105,6 @@ ENV/
 *.ipr
 *.iws
 .idea/
+
+*.exe
+.vscode/
