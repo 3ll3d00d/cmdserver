@@ -105,7 +105,12 @@ class Tivo(object):
 
     def disconnect(self):
         if self._sock:
-            self._disconnect0()
+            self._recordMessage('Stopping on disconnect')
+            self._sock.close()
+            self._recordMessage('Disconnected')
+            self._sock = None
+        else:
+            logger.info(f"Ignoring disconnect {self._tivo['name']} has no socket")
 
     def _send(self, message):
         """ The core output function. Re-connect if necessary, send message, sleep, and check for errors. """
@@ -172,22 +177,20 @@ class Tivo(object):
     def _readFromSocket(self):
         """ Read incoming messages from the socket in a separate thread.
         """
+        logger.info(f"[{self._tivo['name']}] Initialising status reader")
         while self._sock is not None:
+            logger.info('Reading')
             try:
                 status = self._sock.recv(80).decode()
             except Exception as e:
                 status = str(e)
             status = status.strip().title()
             if not status:
+                self._recordMessage('No status read from socket')
                 self.disconnect()
             else:
                 self.currentChannel = status
-
-    def _disconnect0(self):
-        if not self._sock:
-            self._recordMessage('Stopping on disconnect')
-            self._sock.close()
-            self._recordMessage('Disconnected')
+        logger.info(f"[{self._tivo['name']}] Exiting status reader")
 
     def getMessages(self):
         # TODO put the messages in the right order
@@ -198,21 +201,31 @@ class TivoController(object):
 
     def __init__(self):
         self._tivos = [Tivo(t) for t in self._findTivos()]
-        self._worker = threading.Thread(name='TivoPinger', target=self._refreshTivos, daemon=True)
-        self._worker.start()
+        self.__ping()
 
-    def _refreshTivos(self):
-        tivos = self._findTivos()
-        logger.debug('Found ' + str(len(tivos)) + ' tivos')
-        for newTivo in tivos:
-            existingTivo = next((t for t in self._tivos if t._tivo['name'] == newTivo['name']), None)
-            if existingTivo is None:
-                self._tivos.append(Tivo(newTivo))
-        for oldTivo in self._tivos:
-            deadTivo = next((t for t in tivos if t['name'] == oldTivo._tivo['name']), None)
-            if deadTivo is None:
-                oldTivo.disconnect()
-        time.sleep(15)
+    def __ping(self, delay=15):
+        time.sleep(delay)
+        worker = threading.Thread(name='TivoPinger', target=self.__ping0, daemon=True)
+        worker.start()
+
+    def __ping0(self):
+        try:
+            tivos = self._findTivos()
+            logger.debug(f"Found {len(tivos)} tivos")
+            for new_tivo in tivos:
+                existing_tivo = next((t for t in self._tivos if t._tivo['name'] == new_tivo['name']), None)
+                if existing_tivo is None:
+                    logger.info(f"Connecting new Tivo {new_tivo['name']} @ {new_tivo['address']}:{new_tivo['port']}")
+                    self._tivos.append(Tivo(new_tivo))
+            for old_tivo in self._tivos:
+                dead_tivo = next((t for t in tivos if t['name'] == old_tivo._tivo['name']), None)
+                if dead_tivo is None:
+                    logger.info(f"Disconnecting old Tivo {old_tivo['name']} @ {old_tivo['address']}:{old_tivo['port']}")
+                    old_tivo.disconnect()
+        except:
+            logger.exception('Unexpected failure during ping')
+        finally:
+            self.__ping()
 
     def hasTivo(self, tivoName):
         return True if next((t for t in self._tivos if t._tivo['name'] == tivoName), None) else False

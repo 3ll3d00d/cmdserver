@@ -139,7 +139,7 @@ def main(args=None):
     else:
         logger.error('Icons are not available in debug mode')
         # get config from a flask standard place not our config yml
-        app.run(debug=cfg.runInDebug(), host='0.0.0.0', port=cfg.getPort())
+        app.run(debug=cfg.runInDebug(), host='0.0.0.0', port=cfg.getPort(), use_reloader=False)
 
 
 if __name__ == '__main__':

@@ -39,7 +39,7 @@ IfWinExist ahk_class IEFrame
 		Exit, ITV
 	} else if (IsSameSite("https://www.channel4.com/", activeUrl)) {
 		Exit, FOUR_OD
-	} else if (IsSameSite("https://www.amazon.com/Prime-Video/b?node=2676882011", activeUrl)) {
+	} else if (IsSameSite("https://www.amazon.co.uk/gp/video/watchlist", activeUrl)) {
 		Exit, PRIME
 	} 
 } 

@@ -107,7 +107,7 @@ if (closeNetflix) {
 
 if (closeJR) {
 	stdout.WriteLine("Minimising JRiver")
-	Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 10014
+	Run, "C:\Program Files\J River\Media Center 25\MC25.exe" /MCC 10014
 	stdout.WriteLine("Minimised JRiver")
 }
 
@@ -167,7 +167,7 @@ if (!closeNetflix) {
 if (!closeJR) {
 	if (jriverActivity != "Film") {
 		stdout.WriteLine("Switching to MC Playing Now")
-		Run, "C:\Program Files\J River\Media Center 23\MC23.exe" /MCC 22001`,2
+		Run, "C:\Program Files\J River\Media Center 25\MC25.exe" /MCC 22001`,2
 		stdout.WriteLine("Switched to MC Playing Now")
 	}
 }
