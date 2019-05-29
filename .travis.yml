@@ -1,0 +1,44 @@
+cache:
+  directories:
+  - "$PIP_CACHE_DIR"
+  - "$PIPENV_CACHE_DIR"
+os: windows
+language: shell
+env:
+- PIP_CACHE_DIR=$HOME/.cache/pip
+- PIPENV_CACHE_DIR=$HOME/.cache/pipenv
+- PIPENV_VENV_IN_PROJECT=yes
+- NO_MKL=Y
+- PBIN=pip
+- PRUN="pipenv run"
+- PATH=/c/Python37:/c/Python37/Scripts:$PATH
+before_install:
+- choco install python openssl.light
+install:
+- pip install pipenv
+- pipenv install -d
+- pip list
+- pipenv run pip list
+before_script:
+- |
+  if [[ -n ${TRAVIS_TAG} ]]
+  then
+    echo $TRAVIS_TAG > src/VERSION
+  fi
+script:
+- PYTHONPATH=./src/main/python pipenv pytest
+before_deploy:
+- pipenv pip install pyinstaller
+- pipenv pyinstaller --clean --log-level=INFO -F cmdserver.spec
+deploy:
+  provider: releases
+  api_key:
+    secure: a2Ju6IVLQjD2RTNlIhDe9saFGcNfdr+F9P2LO1q4zT8Bke8EGlDlBeE5xKmMhD7KWiS5IJDJz9djXlqI0JG3D2Tve2VhpYrLUD7mABTxIZqKReYXL5b/p4B4mkg0KLlUHleyu4t2GWZ1+PNPmCO3Q0G1k7aNl8NQb2wZMBujaKFM/HHf9PBS7ioROrnJjW2VlNg86YDCKZKUYOGc1tOgIYrwX0h4HqE0/oHj7ZNAxLqi2OYr22To4NFJCnMPXxF81n95N2o7AlwLUElaSdHC5D2OPgCVATDzkX7MzD2cpkI1ca0a5exqo3pdX3q0wofygWj3zNwVWKbub+poLtKFV2BowCWrr89UPZYPXlmnivolD5cfFRpgO8SABYnVWzXWhsaxdS2xEBL/SZ0ssuuPiJRSWjsiunjTPQBDoqxBYPSPlUcKbvrE6mcmfjCREQKdXVSnJRtEGhA/JD91oDtNbOr2Vk+u3hSwpNcSr1oXmG/J2PCGgsjcY+RKv/aGF4CzFdBYya4PGqODhiaZKKSW8rKub5ZW+c+8ELCRk5Fu3DAWVvJN7ZhVVuR+gYPG+avKDYwXF1/NwX/IXumS5a8LAwnZTVtzPRwntQr9rIJfXqNaCV1sFFJ+MDaf8K4u0P8T3yGtRO1BtfTYyO+YXRrBMCn4VZ2dN7Qv5L1YdIpbm1M=
+  file_glob: true
+  file: dist/cmdserver.exe
+  on:
+    repo: 3ll3d00d/cmdserver
+    branch: travis
+    tags: true
+  skip_cleanup: true
+  prerelease: true
