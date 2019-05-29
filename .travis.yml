@@ -1,13 +1,12 @@
 cache:
   directories:
-  - "$PIP_CACHE_DIR"
-  - "$PIPENV_CACHE_DIR"
+  - $HOME/.cache/pip
+  - $HOME/.cache/pipenv
 os: windows
 language: minimal
 env:
-- PIP_CACHE_DIR=$HOME/.cache/pip
-- PIPENV_CACHE_DIR=$HOME/.cache/pipenv
-- PATH=/c/Python37:/c/Python37/Scripts:$PATH
+  global:
+    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 before_install:
 - choco install python openssl.light
 install:
