@@ -1,19 +1,27 @@
+language: python
 cache:
   directories:
-  - "$HOME/.cache/pip"
-  - "$HOME/.cache/pipenv"
-os: windows
-language: minimal
+    - "$PIP_CACHE_DIR"
+    - "$PIPENV_CACHE_DIR"
 env:
   global:
-  - PATH=/c/Python37:/c/Python37/Scripts:$PATH
-before_install:
-- choco install python openssl.light
-install:
-- pip install pipenv
-- pipenv install -d
-- pip list
-- pipenv run pip list
+    - PIP_CACHE_DIR=$HOME/.cache/pip
+    - PIPENV_CACHE_DIR=$HOME/.cache/pipenv
+matrix:
+  fast_finish: true
+  include:
+    - name: Conda on Windows
+      os: windows
+      language: shell
+      env:
+        - PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:$PATH"
+      before_install:
+      - choco install python openssl.light
+      install:
+      - pip install pipenv
+      - pipenv install -d
+      - pip list
+      - pipenv run pip list
 before_script:
 - |
   if [[ -n ${TRAVIS_TAG} ]]
