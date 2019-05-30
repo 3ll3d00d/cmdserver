@@ -1,12 +1,12 @@
 cache:
   directories:
-  - $HOME/.cache/pip
-  - $HOME/.cache/pipenv
+  - "$HOME/.cache/pip"
+  - "$HOME/.cache/pipenv"
 os: windows
 language: minimal
 env:
   global:
-    - PATH=/c/Python37:/c/Python37/Scripts:$PATH
+  - PATH=/c/Python37:/c/Python37/Scripts:$PATH
 before_install:
 - choco install python openssl.light
 install:
@@ -33,12 +33,10 @@ before_deploy:
 deploy:
   provider: releases
   api_key:
-    secure: a2Ju6IVLQjD2RTNlIhDe9saFGcNfdr+F9P2LO1q4zT8Bke8EGlDlBeE5xKmMhD7KWiS5IJDJz9djXlqI0JG3D2Tve2VhpYrLUD7mABTxIZqKReYXL5b/p4B4mkg0KLlUHleyu4t2GWZ1+PNPmCO3Q0G1k7aNl8NQb2wZMBujaKFM/HHf9PBS7ioROrnJjW2VlNg86YDCKZKUYOGc1tOgIYrwX0h4HqE0/oHj7ZNAxLqi2OYr22To4NFJCnMPXxF81n95N2o7AlwLUElaSdHC5D2OPgCVATDzkX7MzD2cpkI1ca0a5exqo3pdX3q0wofygWj3zNwVWKbub+poLtKFV2BowCWrr89UPZYPXlmnivolD5cfFRpgO8SABYnVWzXWhsaxdS2xEBL/SZ0ssuuPiJRSWjsiunjTPQBDoqxBYPSPlUcKbvrE6mcmfjCREQKdXVSnJRtEGhA/JD91oDtNbOr2Vk+u3hSwpNcSr1oXmG/J2PCGgsjcY+RKv/aGF4CzFdBYya4PGqODhiaZKKSW8rKub5ZW+c+8ELCRk5Fu3DAWVvJN7ZhVVuR+gYPG+avKDYwXF1/NwX/IXumS5a8LAwnZTVtzPRwntQr9rIJfXqNaCV1sFFJ+MDaf8K4u0P8T3yGtRO1BtfTYyO+YXRrBMCn4VZ2dN7Qv5L1YdIpbm1M=
-  file_glob: true
+    secure: uD4bnS1EQTh7X848tsQkj6AJ4S3MFBt3sgUHNkuvgA+YYTIUfBZ2kBZQaP5W900MMon2PNQ3gHDYWH2V1nPeN8LFEKUZK0xBHJcxgX7TQfdGzG9+xrwAOmB2OTvtkXLC2Q8Lp6962C3X0nR4eyP7zeZYjzB7tnzgHYwbpqCfl9nbsqpiNYBg2Yy/Kp4nf0uhjc2aZ4ACKE5JVyypcklYzqP58uvFAvcli9tXGKS/D0kH1L8ol9Y1IbMxQpyGEnLxlET1lyygbpB2A+bN8NY9aKKXdQnfso53OZTuWqnQ4MlyagRkYUuhwiLSRjzKjGlZkj3RU+duX/GiLmyCUbXdN+pPdIRRUNB/YMygA33pP3waCeA3AbmQRMRu5U34UczMyQpiyiOBsWrlxGFLQdptfg7xgsqSqRTU7+Cuu/X/9tOQGg66IyVEnEP9a3TVkF8LPHXLcsTJCudHXL7Z9O51KPgEF6AQHan6CZq4LLTkWCPCQ4C6cM4wlZF/B4awywaN/dekTQRAclHwMxGAtGYs7j6fse38rw4J+ItXvwrVJMxiVrpTKsRFsVNjUF6dWOEeytGieM6cEy/UDgswHfjr8R2Mq25aIU2BXNzSBKn9Cf8dlc5O1UWCNfEBjd1V+UX2xujwabn1uEihfMy9tXF86kLPU62Agb3r1U2GpFHVRAI=
   file: dist/cmdserver.exe
   on:
     repo: 3ll3d00d/cmdserver
-    branch: travis
     tags: true
   skip_cleanup: true
   prerelease: true
