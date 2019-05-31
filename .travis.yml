@@ -14,7 +14,7 @@ matrix:
       os: windows
       language: shell
       env:
-        - PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:$PATH"
+      - PATH=/c/Python37:/c/Python37/Scripts:$PATH
       before_install:
       - choco install python openssl.light
       install:
