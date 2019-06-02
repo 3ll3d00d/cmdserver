@@ -61,7 +61,7 @@ before_deploy:
 - mkdir ezmote
 - tar xvfz ezmote.tar.gz -C ezmote
 - rm ezmote.tar.gz
-- $PRUN run pyinstaller --clean --log-level=INFO -F cmdserver.spec
+- $PRUN pyinstaller --clean --log-level=INFO -F cmdserver.spec
 - |
   if [[ -n "${PRUN}" ]]
   then
