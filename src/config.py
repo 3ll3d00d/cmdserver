@@ -118,8 +118,9 @@ class Config(object):
         :return: the base logger.
         """
         baseLogLevel = logging.DEBUG if self.isDebugLogging() else logging.INFO
-        # create recorder app root logger
-        logger = logging.getLogger(self._name)
+        consoleLogLevel = logging.INFO if self.isDebugLogging() else logging.WARN
+        # create root logger
+        logger = logging.getLogger()
         logger.setLevel(baseLogLevel)
         # file handler
         fh = handlers.RotatingFileHandler(path.join(self._getConfigPath(), self._name + '.log'),
@@ -127,7 +128,7 @@ class Config(object):
         fh.setLevel(baseLogLevel)
         # create console handler with a higher log level
         ch = logging.StreamHandler()
-        ch.setLevel(logging.WARN)
+        ch.setLevel(consoleLogLevel)
         # create formatter and add it to the handlers
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s')
         fh.setFormatter(formatter)

@@ -15,14 +15,14 @@ spec_root = os.path.abspath(SPECPATH)
 
 a = Analysis(['src/cmdserver.py'],
              pathex=[spec_root],
-             binaries=None,
+             binaries=[],
              datas=[
                  ('src/VERSION', '.'),
              ],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
-             excludes=[],
+             excludes=['pkg_resources'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
@@ -39,5 +39,5 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=False,
-          console=True,
-          exclude_binaries=False)
+          runtime_tmpdir=None,
+          console=True)

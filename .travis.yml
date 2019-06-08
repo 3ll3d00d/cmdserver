@@ -58,7 +58,7 @@ before_script:
 script:
 - echo "Look ma no tests"
 before_deploy:
-- $PRUN $PBIN install pyinstaller
+- $PRUN $PBIN install pyinstaller pywin32
 - |
   curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/12914946" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
 - mkdir ezmote

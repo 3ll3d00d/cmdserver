@@ -1,5 +1,6 @@
 import faulthandler
 import os
+from os import path
 
 from flask import Flask
 from flask_restful import Api
@@ -44,7 +45,7 @@ def main(args=None):
 
     if cfg.useTwisted:
         import logging
-        logger = logging.getLogger('analyser.twisted')
+        logger = logging.getLogger('twisted')
         from twisted.internet import reactor
         from twisted.web.resource import Resource
         from twisted.web import static, server
@@ -116,7 +117,7 @@ def main(args=None):
                 request.setHeader('Access-Control-Allow-Origin', '*')
                 request.setHeader('Access-Control-Allow-Methods', 'GET, PUT')
                 request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
-                request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+                request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
                 if path == b'api':
                     request.prepath.pop()
                     request.postpath.insert(0, path)
@@ -132,7 +133,7 @@ def main(args=None):
                 return self.wsgi.render(request)
 
         application = service.Application('cmdserver')
-        site = server.Site(FlaskAppWrapper())
+        site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg._getConfigPath(), 'access.log').encode())
         endpoint = endpoints.TCP4ServerEndpoint(reactor, cfg.getPort(), interface='0.0.0.0')
         endpoint.listen(site)
         reactor.run()
