@@ -60,7 +60,7 @@ script:
 before_deploy:
 - $PRUN $PBIN install pyinstaller pywin32
 - |
-  curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/13106720" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
+  curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/13351096" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
 - mkdir ezmote
 - tar xvfz ezmote.tar.gz -C ezmote
 - rm ezmote.tar.gz

@@ -5,6 +5,8 @@ from os import path
 from flask import Flask
 from flask_restful import Api
 
+from pj import PJ, UpdatePJ
+from pjcontroller import PJController
 from command import Commands, Command
 from commandcontroller import CommandController
 from config import Config
@@ -23,25 +25,31 @@ if hasattr(faulthandler, 'register'):
 app = Flask(__name__)
 api = Api(app)
 cfg = Config('cmdserver')
-resourceArgs = {
-    'commandController': CommandController(cfg),
+resource_args = {
+    'command_controller': CommandController(cfg),
     'tivoController': TivoController(),
+    'pj_controller': PJController(cfg),
     'config': cfg
 }
 
 # GET: gets the available commands
-api.add_resource(Commands, API_PREFIX + '/commands', resource_class_kwargs=resourceArgs)
+api.add_resource(Commands, API_PREFIX + '/commands', resource_class_kwargs=resource_args)
 # PUT: executes a command
-api.add_resource(Command, API_PREFIX + '/commands/<command>', resource_class_kwargs=resourceArgs)
+api.add_resource(Command, API_PREFIX + '/commands/<command>', resource_class_kwargs=resource_args)
 # GET: gets the current state of the playback system
-api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=resourceArgs)
+api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=resource_args)
 # GET: available TIVOs
 # POST: send a command
-api.add_resource(Tivo, API_PREFIX + '/tivos', resource_class_kwargs=resourceArgs)
+api.add_resource(Tivo, API_PREFIX + '/tivos', resource_class_kwargs=resource_args)
+# GET: read only command
+api.add_resource(PJ, API_PREFIX + '/pj/<command>', resource_class_kwargs=resource_args)
+# PUT: write command
+api.add_resource(UpdatePJ, API_PREFIX + '/pj', resource_class_kwargs=resource_args)
+
 
 def main(args=None):
     """ The main routine. """
-    logger = cfg.configureLogger()
+    logger = cfg.configure_logger()
 
     if cfg.useTwisted:
         import logging
@@ -64,7 +72,7 @@ def main(args=None):
                                     os.path.exists(os.path.join(path, f))}
                 self.indexHtml = ReactIndex(os.path.join(path, 'index.html'))
 
-            def getFile(self, path):
+            def get_file(self, path):
                 """
                 overrides getChild so it always just serves index.html unless the file does actually exist (i.e. is an
                 icon or something like that)
@@ -127,20 +135,20 @@ def main(args=None):
                 elif path == b'icons':
                     return self.icons
                 else:
-                    return self.react.getFile(path)
+                    return self.react.get_file(path)
 
             def render(self, request):
                 return self.wsgi.render(request)
 
         application = service.Application('cmdserver')
-        site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg._getConfigPath(), 'access.log').encode())
-        endpoint = endpoints.TCP4ServerEndpoint(reactor, cfg.getPort(), interface='0.0.0.0')
+        site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg.config_path, 'access.log').encode())
+        endpoint = endpoints.TCP4ServerEndpoint(reactor, cfg.port, interface='0.0.0.0')
         endpoint.listen(site)
         reactor.run()
     else:
         logger.error('Icons are not available in debug mode')
         # get config from a flask standard place not our config yml
-        app.run(debug=cfg.runInDebug(), host='0.0.0.0', port=cfg.getPort(), use_reloader=False)
+        app.run(debug=cfg.run_in_debug, host='0.0.0.0', port=cfg.port, use_reloader=False)
 
 
 if __name__ == '__main__':

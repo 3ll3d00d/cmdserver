@@ -7,19 +7,19 @@ logger = logging.getLogger('cmdserver.command')
 
 class Commands(Resource):
     def __init__(self, **kwargs):
-        self._commandController = kwargs['commandController']
+        self.__controller = kwargs['command_controller']
 
     def get(self):
-        return {'commands': self._commandController.getCommands()}
+        return {'commands': self.__controller.commands}
 
 
 class Command(Resource):
     def __init__(self, **kwargs):
-        self._commandController = kwargs['commandController']
+        self.__controller = kwargs['command_controller']
 
     def put(self, command):
         logger.info('Executing ' + command)
-        result = self._commandController.executeCommand(command)
+        result = self.__controller.execute(command)
         if result is None:
             logger.info('Executed ' + command + ' successfully')
             return None, 404
