@@ -203,7 +203,7 @@ class RemoteCode(WriteOnly, Enum):
 
 class PowerState(NoVerify, Enum):
     """Power state"""
-    StandBy = b'0' # send/get
+    Standby = b'0' # send/get
     LampOn = b'1' # send/get
     Cooling = b'2' # get
     Starting = b'3' # get
