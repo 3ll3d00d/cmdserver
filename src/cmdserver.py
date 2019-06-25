@@ -128,7 +128,7 @@ def main(args=None):
                 request.setHeader('Access-Control-Allow-Methods', 'GET, PUT')
                 request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
                 request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
-                logger.debug(f"Handing {path}")
+                logger.debug(f"Handling {path}")
                 if path == b'api':
                     request.prepath.pop()
                     request.postpath.insert(0, path)
@@ -144,7 +144,10 @@ def main(args=None):
                 return self.wsgi.render(request)
 
         application = service.Application('cmdserver')
-        site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg.config_path, 'access.log').encode())
+        if cfg.is_access_logging is True:
+            site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg.config_path, 'access.log').encode())
+        else:
+            site = server.Site(FlaskAppWrapper())
         endpoint = endpoints.TCP4ServerEndpoint(reactor, cfg.port, interface='0.0.0.0')
         endpoint.listen(site)
         reactor.run()

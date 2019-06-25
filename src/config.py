@@ -48,6 +48,13 @@ class Config:
         return self.config.get('debugLogging', False)
 
     @property
+    def is_access_logging(self):
+        """
+        :return: if access logging mode is on, defaults to False.
+        """
+        return self.config.get('accessLogging', False)
+
+    @property
     def hostname(self):
         """
         :return: the host the device is running on, defaults to that found by a call to socket.getfqdn()
@@ -102,6 +109,7 @@ class Config:
         return {
             'debug': True,
             'debugLogging': True,
+            'accessLogging': False,
             'port': 53199,
             'host': self.default_hostname,
             'useTwisted': False,
@@ -109,7 +117,7 @@ class Config:
             'commands': {},
             'pjmacros': {},
             'playingNowExe': None,
-            'pjip': None
+            'pjip': None,
         }
 
     @property
