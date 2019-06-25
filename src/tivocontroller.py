@@ -74,7 +74,7 @@ SHIFT_SYMS = {'_': 'MINUS', '+': 'EQUALS', '{': 'LBRACKET',
 class Tivo(object):
     def __init__(self, tivo):
         self._sock = None
-        self._tivo = tivo
+        self.__tivo = tivo
         self.__messages = [''] * 5
         self._messageIdx = 0
         self.currentChannel = ''
@@ -82,11 +82,30 @@ class Tivo(object):
             address, port = tivo['address'].split(':')
             try:
                 port = int(port)
-                self._tivo['address'] = address
-                self._tivo['port'] = port
+                self.__tivo['address'] = address
+                self.__tivo['port'] = port
             except:
                 pass
         self.__connect()
+
+    @property
+    def name(self):
+        return self.__tivo['name']
+
+    @property
+    def port(self):
+        return self.__tivo['port']
+
+    @property
+    def address(self):
+        return self.__tivo['address']
+
+    @property
+    def version(self):
+        return self.__tivo['version']
+
+    def get_tivo_properties(self):
+        return {**self.__tivo}
 
     @property
     def connected(self):
@@ -99,7 +118,7 @@ class Tivo(object):
         try:
             self._sock = socket.socket()
             self._sock.settimeout(5)
-            self._sock.connect((self._tivo['address'], self._tivo['port']))
+            self._sock.connect((self.address, self.port))
             self._sock.settimeout(None)
             self._statusThread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket, daemon=True)
             self._statusThread.start()
@@ -114,7 +133,7 @@ class Tivo(object):
             self.__record_message('Disconnected')
             self._sock = None
         else:
-            logger.info(f"Ignoring disconnect {self._tivo['name']} has no socket")
+            logger.info(f"Ignoring disconnect {self.name} has no socket")
 
     def __send(self, message):
         """ The core output function. Re-connect if necessary, send message, sleep, and check for errors. """
@@ -181,7 +200,7 @@ class Tivo(object):
     def __read_from_socket(self):
         """ Read incoming messages from the socket in a separate thread.
         """
-        logger.info(f"[{self._tivo['name']}] Initialising status reader")
+        logger.info(f"[{self.name}] Initialising status reader")
         while self._sock is not None:
             logger.info('Reading')
             try:
@@ -194,7 +213,7 @@ class Tivo(object):
                 self.disconnect()
             else:
                 self.currentChannel = status
-        logger.info(f"[{self._tivo['name']}] Exiting status reader")
+        logger.info(f"[{self.name}] Exiting status reader")
 
     @property
     def messages(self):
@@ -217,14 +236,14 @@ class TivoController(object):
             tivos = self.__find_tivos()
             logger.debug(f"Found {len(tivos)} tivos")
             for new_tivo in tivos:
-                existing_tivo = next((t for t in self.__tivos if t._tivo['name'] == new_tivo['name']), None)
+                existing_tivo = next((t for t in self.__tivos if t.name == new_tivo['name']), None)
                 if existing_tivo is None:
                     logger.info(f"Connecting new Tivo {new_tivo['name']} @ {new_tivo['address']}:{new_tivo['port']}")
                     self.__tivos.append(Tivo(new_tivo))
             for old_tivo in self.__tivos:
-                dead_tivo = next((t for t in tivos if t['name'] == old_tivo._tivo['name']), None)
+                dead_tivo = next((t for t in tivos if t['name'] == old_tivo.name), None)
                 if dead_tivo is None:
-                    logger.info(f"Disconnecting old Tivo {old_tivo['name']} @ {old_tivo['address']}:{old_tivo['port']}")
+                    logger.info(f"Disconnecting old Tivo {old_tivo.name} @ {old_tivo.address}:{old_tivo.port}")
                     old_tivo.disconnect()
         except:
             logger.exception('Unexpected failure during ping')
@@ -232,10 +251,10 @@ class TivoController(object):
             self.__ping()
 
     def has_tivo(self, tivo_name):
-        return True if next((t for t in self.__tivos if t._tivo['name'] == tivo_name), None) else False
+        return True if next((t for t in self.__tivos if t.name == tivo_name), None) else False
 
     def get_tivo(self, tivo_name):
-        return next((t for t in self.__tivos if t._tivo['name'] == tivo_name), None)
+        return next((t for t in self.__tivos if t.name == tivo_name), None)
 
     def send(self, tivo_name, type, command):
         tivo = self.get_tivo(tivo_name)
@@ -253,7 +272,13 @@ class TivoController(object):
 
     @property
     def tivos(self):
-        return [{**t._tivo.copy(), **{'connected': t.connected, 'messages': t.messages, 'channel': t.currentChannel}} for t in self.__tivos]
+        return [
+            {
+                **t.get_tivo_properties(),
+                **{'connected': t.connected, 'messages': t.messages, 'channel': t.currentChannel}
+            }
+            for t in self.__tivos
+        ]
 
     def __find_tivos(self):
         class ZCListener:
