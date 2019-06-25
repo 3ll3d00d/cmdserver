@@ -11,7 +11,7 @@ from command import Commands, Command
 from commandcontroller import CommandController
 from config import Config
 from playingnow import PlayingNow
-from tivo import Tivo
+from tivo import Tivos, Tivo
 from tivocontroller import TivoController
 
 API_PREFIX = '/api/1'
@@ -40,7 +40,9 @@ api.add_resource(Command, API_PREFIX + '/commands/<command>', resource_class_kwa
 api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=resource_args)
 # GET: available TIVOs
 # POST: send a command
-api.add_resource(Tivo, API_PREFIX + '/tivos', resource_class_kwargs=resource_args)
+api.add_resource(Tivos, API_PREFIX + '/tivos', resource_class_kwargs=resource_args)
+# GET: get from tivo
+api.add_resource(Tivo, API_PREFIX + '/tivo/<tivo>', resource_class_kwargs=resource_args)
 # GET: read only command
 api.add_resource(PJ, API_PREFIX + '/pj/<command>', resource_class_kwargs=resource_args)
 # PUT: write command
@@ -126,6 +128,7 @@ def main(args=None):
                 request.setHeader('Access-Control-Allow-Methods', 'GET, PUT')
                 request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
                 request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
+                logger.debug(f"Handing {path}")
                 if path == b'api':
                     request.prepath.pop()
                     request.postpath.insert(0, path)

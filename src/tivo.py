@@ -6,13 +6,13 @@ from flask_restful import Resource
 logger = logging.getLogger('cmdserver.tivo')
 
 
-class Tivo(Resource):
+class Tivos(Resource):
 
     def __init__(self, **kwargs):
-        self._tivoController = kwargs['tivoController']
+        self.__controller = kwargs['tivoController']
 
     def get(self):
-        return self._tivoController.getTivos()
+        return self.__controller.tivos
 
     def put(self):
         payload = request.get_json()
@@ -20,12 +20,25 @@ class Tivo(Resource):
         name = payload['name']
         command = payload['command']
         logger.debug('Sending ' + type + '/' + command + ' to ' + name)
-        if self._tivoController.hasTivo(name):
+        if self.__controller.has_tivo(name):
             try:
-                sent = self._tivoController.send(name, type, command)
+                sent = self.__controller.send(name, type, command)
                 # sent: [] of commands, channel: current channel text, type, name, command
                 return {**sent, **payload}, 200
             except Exception as e:
                 return {'error': str(e), **payload}, 500
         else:
             return 404
+
+
+class Tivo(Resource):
+
+    def __init__(self, **kwargs):
+        self.__controller = kwargs['tivoController']
+
+    def get(self, tivo):
+        tivo = self.__controller.get_tivo(tivo)
+        if tivo is None:
+            return 404
+        else:
+            return {'channel': tivo.currentChannel, 'messages': tivo.messages, 'connected': tivo.connected}, 200
