@@ -31,7 +31,7 @@ matrix:
       os: windows
       language: shell
       env:
-        - PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Scripts:$PATH"
+        - PATH="/c/tools/miniconda3/:/c/tools/miniconda3/Library/mingw-w64:/c/tools/miniconda3/Library/usr/bin:/c/tools/miniconda3/Library/bin:/c/tools/miniconda3/Scripts:/c/tools/miniconda3/bin:$PATH"
         - PBIN=pip
         - PRUN=
       before_install:
