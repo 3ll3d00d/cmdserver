@@ -469,111 +469,123 @@ class InputState(Enum):
 
 
 class SourceData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'02': '480p',
+        b'03': '576p',
+        b'04': '720p50',
+        b'05': '720p60',
+        b'06': '1080i50',
+        b'07': '1080i60',
+        b'08': '1080p24',
+        b'09': '1080p50',
+        b'0A': '1080p60',
+        b'0B': 'No Signal',
+        b'0C': '720p 3D',
+        b'0D': '1080i 3D',
+        b'0E': '1080p 3D',
+        b'0F': 'Out of Range',
+        b'10': '4K(4096)60',
+        b'11': '4K(4096)50',
+        b'12': '4K(4096)30',
+        b'13': '4K(4096)25',
+        b'14': '4K(4096)24',
+        b'15': '4K(3840)60',
+        b'16': '4K(3840)50',
+        b'17': '4K(3840)30',
+        b'18': '4K(3840)25',
+        b'19': '4K(3840)24',
+        b'1C': '1080p25',
+        b'1D': '1080p30',
+        b'1E': '2048x1080 p24',
+        b'1F': '2048x1080 p25',
+        b'20': '2048x1080 p30',
+        b'21': '2048x1080 p50',
+        b'22': '2048x1080 p60',
+        b'23': '3840x2160 p120',
+        b'24': '4096x2160 p120',
+        b'25': 'VGA(640x480)',
+        b'26': 'VGA(640x480)',
+        b'27': 'SVGA(800x600)',
+        b'28': 'XGA(1024x768)',
+        b'29': 'SXGA(1280x1024)',
+        b'2A': 'WXGA(1280x768)',
+        b'2B': 'WXGA+(1440x900)',
+        b'2C': 'WSXGA+(1680x1050',
+        b'2D': 'WUXGA(1920x1200)',
+        b'2E': 'WXGA(1280x800)',
+        b'2F': 'FWXGA(1366x768)',
+        b'30': 'WXGA++(1600x900)',
+        b'31': 'UXGA(1600x1200)',
+        b'32': 'QXGA'
+    }
+
     """Input Info Source Information"""
     def __new__(cls, value):
-        return {
-            b'02': '480p',
-            b'03': '576p',
-            b'04': '720p50',
-            b'05': '720p60',
-            b'06': '1080i50',
-            b'07': '1080i60',
-            b'08': '1080p24',
-            b'09': '1080p50',
-            b'0A': '1080p60',
-            b'0B': 'No Signal',
-            b'0C': '720p 3D',
-            b'0D': '1080i 3D',
-            b'0E': '1080p 3D',
-            b'0F': 'Out of Range',
-            b'10': '4K(4096)60',
-            b'11': '4K(4096)50',
-            b'12': '4K(4096)30',
-            b'13': '4K(4096)25',
-            b'14': '4K(4096)24',
-            b'15': '4K(3840)60',
-            b'16': '4K(3840)50',
-            b'17': '4K(3840)30',
-            b'18': '4K(3840)25',
-            b'19': '4K(3840)24',
-            b'1C': '1080p25',
-            b'1D': '1080p30',
-            b'1E': '2048x1080 p24',
-            b'1F': '2048x1080 p25',
-            b'20': '2048x1080 p30',
-            b'21': '2048x1080 p50',
-            b'22': '2048x1080 p60',
-            b'23': '3840x2160 p120',
-            b'24': '4096x2160 p120',
-            b'25': 'VGA(640x480)',
-            b'26': 'VGA(640x480)',
-            b'27': 'SVGA(800x600)',
-            b'28': 'XGA(1024x768)',
-            b'29': 'SXGA(1280x1024)',
-            b'2A': 'WXGA(1280x768)',
-            b'2B': 'WXGA+(1440x900)',
-            b'2C': 'WSXGA+(1680x1050',
-            b'2D': 'WUXGA(1920x1200)',
-            b'2E': 'WXGA(1280x800)',
-            b'2F': 'FWXGA(1366x768)',
-            b'30': 'WXGA++(1600x900)',
-            b'31': 'UXGA(1600x1200)',
-            b'32': 'QXGA'
-        }[value]
+        return SourceData.KNOWN_VALUES[value]
 
 
 class DeepColorData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'0': '8 bit',
+        b'1': '10 bit',
+        b'2': '12 bit',
+    }
+
     """Input Info Deep Color"""
     def __new__(cls, value):
-        return {
-            b'0': '8 bit',
-            b'1': '10 bit',
-            b'2': '12 bit',
-            }[value]
+        return DeepColorData.KNOWN_VALUES[value]
 
 
 class ColorSpaceData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'0': 'RGB',
+        b'1': 'YUV'
+    }
+
     """Input Info Color Space"""
     def __new__(cls, value):
-        return {
-            b'0': 'RGB',
-            b'1': 'YUV'
-        }[value]
+        return ColorSpaceData.KNOWN_VALUES[value]
 
 
 class ColorimetryData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'0': 'No Data',
+        b'1': 'BT.601',
+        b'2': 'BT.709',
+        b'3': 'xvYCC601',
+        b'4': 'xvYCC709',
+        b'5': 'sYCC601',
+        b'6': 'Adobe YCC601',
+        b'7': 'Adobe RGB',
+        b'8': 'BT.2020 Constant Luminence',
+        b'9': 'BT.2020 Non-Constant Luminence',
+        b'A': 'Reserved (Other)'
+    }
+
     def __new__(cls, value):
-        return {
-            b'0': 'No Data',
-            b'1': 'BT.601',
-            b'2': 'BT.709',
-            b'3': 'xvYCC601',
-            b'4': 'xvYCC709',
-            b'5': 'sYCC601',
-            b'6': 'Adobe YCC601',
-            b'7': 'Adobe RGB',
-            b'8': 'BT.2020 Constant Luminence',
-            b'9': 'BT.2020 Non-Constant Luminence',
-            b'A': 'Reserved (Other)'
-        }[value]
+        return ColorimetryData.KNOWN_VALUES[value]
 
 
 class HDRData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'0': 'SDR',
+        b'1': 'HDR',
+        b'2': 'SMPTE ST 2084',
+        b'F': 'None'
+    }
+
     def __new__(cls, value):
-        return {
-            b'0': 'SDR',
-            b'1': 'HDR',
-            b'2': 'SMPTE ST 2084',
-            b'F': 'None'
-        }[value]
+        return HDRData.KNOWN_VALUES[value]
 
 
 class AutoToneMappingData(ReadOnly, str):
+    KNOWN_VALUES = {
+        b'0': 'Off',
+        b'1': 'On'
+    }
+
     def __new__(cls, value):
-        return {
-            b'0': 'Off',
-            b'1': 'On'
-        }[value]
+        return AutoToneMappingData.KNOWN_VALUES[value]
 
 
 class Command(Enum):
@@ -754,6 +766,33 @@ class Command(Enum):
     PMAutoToneMapping = b'PMTM', AutoToneMappingData
     PMMappingLevel = b'PMTL', Numeric
     LanSetup = b'LS'   # LAN setup [Lan Setup]
+
+
+def get_all_command_info():
+    import sys
+    cmds = []
+    for command in Command:
+        if isinstance(command.value, tuple):
+            clazz = getattr(sys.modules[__name__], command.value[1].__name__)
+            val = {
+                'command_name': command.name,
+                'net_code': command.value[0].decode("utf-8"),
+                'value_type': command.value[1].__name__,
+                'readonly': issubclass(clazz, ReadOnly),
+                'writeonly': issubclass(clazz, WriteOnly),
+                'binarydata': issubclass(clazz, BinaryData)
+            }
+            if issubclass(clazz, Enum):
+                val['values'] = [i.name for i in clazz]
+            elif hasattr(clazz, 'KNOWN_VALUES'):
+                val['values'] = {k.decode('utf-8'): v for k, v in getattr(clazz, 'KNOWN_VALUES').items()}
+        else:
+            val = {
+                'code': command.value.decode("utf-8"),
+                'writeonly': True
+            }
+        cmds.append(val)
+    return cmds
 
 
 def load_all_commands():

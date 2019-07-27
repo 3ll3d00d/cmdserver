@@ -1,9 +1,10 @@
+import sys
 import logging
 from enum import Enum
 
 from debounce import debounce
 from jvc import CommandExecutor
-from jvccommands import Command, PowerState, load_all_commands
+from jvccommands import Command, load_all_commands, Numeric
 
 logger = logging.getLogger('cmdserver.pjcontroller')
 
@@ -56,12 +57,18 @@ class PJController:
         if len(tokens) > 1:
             try:
                 cmd_enum = Command[tokens[0]]
-                if len(cmd_enum.value) == 2:
+                if isinstance(cmd_enum.value, tuple):
                     cmd_arg_enum = cmd_enum.value[1]
+                    cmd_arg_clazz = getattr(sys.modules[__name__], cmd_arg_enum.__name__)
                     if cmd_arg_enum.__name__ == tokens[1]:
                         logger.info(f"Executing {cmd}")
-                        return self.__executor.set(cmd_enum, cmd_arg_enum[tokens[2]])
-            except KeyError:
+                        if issubclass(cmd_arg_clazz, Enum):
+                            return self.__executor.set(cmd_enum, cmd_arg_enum[tokens[2]])
+                        elif issubclass(cmd_arg_clazz, Numeric):
+                            return self.__executor.set(cmd_enum, Numeric(int(tokens[2])))
+                        else:
+                            logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
+            except (AttributeError, KeyError):
                 logger.warning(f"Ignoring unknown command {cmd}")
             except:
                 logger.exception(f"Unexpected exception while processing {cmd}")

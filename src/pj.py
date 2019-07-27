@@ -3,7 +3,22 @@ import logging
 from flask import request
 from flask_restful import Resource
 
-logger = logging.getLogger('cmdserver.pj')
+from jvccommands import get_all_command_info
+
+logger = logging.getLogger('pyjvcpj.pj')
+
+
+class Info(Resource):
+
+    def __init__(self, **kwargs):
+        self.__pj_controller = kwargs['pj_controller']
+        self.__supported = get_all_command_info()
+
+    def get(self):
+        if self.__supported is None:
+            return None, 500
+        else:
+            return self.__supported, 200
 
 
 class PJ(Resource):
@@ -32,9 +47,3 @@ class UpdatePJ(Resource):
             return None, 404
         else:
             return None, 200
-            # if result[0] == 0:
-            #     logger.info('Executed ' + command + ' successfully')
-            #     return None, 200
-            # else:
-            #     logger.info('Executed ' + command + ' with unexpected result ' + result[0])
-            #     return {'errorCode': result[0]}, 500

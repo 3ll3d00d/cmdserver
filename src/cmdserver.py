@@ -5,7 +5,7 @@ from os import path
 from flask import Flask
 from flask_restful import Api
 
-from pj import PJ, UpdatePJ
+from pj import PJ, UpdatePJ, Info
 from pjcontroller import PJController
 from command import Commands, Command
 from commandcontroller import CommandController
@@ -43,6 +43,8 @@ api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=r
 api.add_resource(Tivos, API_PREFIX + '/tivos', resource_class_kwargs=resource_args)
 # GET: get from tivo
 api.add_resource(Tivo, API_PREFIX + '/tivo/<tivo>', resource_class_kwargs=resource_args)
+# GET: get info
+api.add_resource(Info, API_PREFIX + '/info', resource_class_kwargs=resource_args)
 # GET: read only command
 api.add_resource(PJ, API_PREFIX + '/pj/<command>', resource_class_kwargs=resource_args)
 # PUT: write command
