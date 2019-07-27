@@ -59,12 +59,11 @@ class PJController:
                 cmd_enum = Command[tokens[0]]
                 if isinstance(cmd_enum.value, tuple):
                     cmd_arg_enum = cmd_enum.value[1]
-                    cmd_arg_clazz = getattr(sys.modules[__name__], cmd_arg_enum.__name__)
                     if cmd_arg_enum.__name__ == tokens[1]:
                         logger.info(f"Executing {cmd}")
-                        if issubclass(cmd_arg_clazz, Enum):
+                        if issubclass(cmd_arg_enum, Enum):
                             return self.__executor.set(cmd_enum, cmd_arg_enum[tokens[2]])
-                        elif issubclass(cmd_arg_clazz, Numeric):
+                        elif issubclass(cmd_arg_enum, Numeric):
                             return self.__executor.set(cmd_enum, Numeric(int(tokens[2])))
                         else:
                             logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
