@@ -21,7 +21,8 @@ matrix:
       - PBIN=pip
       - PRUN="pipenv run"
       before_install:
-      - choco install python openssl.light
+      - choco install python --version=3.7.5
+      - choco install openssl.light
       install:
       - pip install pipenv
       - pipenv install -d
