@@ -710,7 +710,7 @@ class Command(Enum):
     PixelAdjustVerticalBlue = b'INYB', Numeric # Pixel Adjust (Vertical Blue) adjustment
     InstallationStyle = b'INIS' # Installation Style switch
     KeystoneVertical = b'INKV', Numeric # Keystone (Vertical) adjustment
-    Anamorphic = b'INVS' # Anamorphic switch
+    Anamorphic = b'INVS', Anamorphic # Anamorphic switch
     ScreenAdjustData = b'INSA', Numeric # Screen Adjust Data
     ScreenAdjust = b'INSC' # Screen Adjust switch
     PanelAlignment = b'INPA' # Panel Alignment switch
