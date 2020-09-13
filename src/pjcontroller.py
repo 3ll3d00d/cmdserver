@@ -80,7 +80,8 @@ class PJController:
                         else:
                             logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
             except (AttributeError, KeyError):
-                logger.warning(f"Ignoring unknown command {cmd}")
+                logger.exception(f"Ignoring unknown command {cmd}")
             except:
                 logger.exception(f"Unexpected exception while processing {cmd}")
-        logger.error(f"Ignoring unknown command {cmd}")
+        else:
+            logger.error(f"Ignoring unknown command {cmd}")
