@@ -1,8 +1,10 @@
+from datetime import datetime
 import enum
 import logging
 import socket
 
 import select
+import time
 
 from jvccommands import WriteOnly, BinaryData, ReadOnly, NoVerify
 
@@ -73,49 +75,59 @@ class Protocol:
     def __exit__(self, exception, value, traceback):
         self.conn.__exit__(exception, value, traceback)
 
-    def _cmd(self, cmdtype, cmd, sendrawdata=None, acktimeout=1):
+    def __cmd(self, cmdtype, cmd, sendrawdata=None, acktimeout=1):
         """Send command and optional raw data and wait for acks"""
         logger.debug(f"  > Cmd:{cmdtype} {cmdtype.value+cmd}")
         assert cmdtype == Header.operation or cmdtype == Header.reference
 
         retry_count = 1
-        while True:
-            if self.reconnect:
-                self.reconnect = False
-                self.conn.reconnect()
-            expect_ack = 0
+
+        def do_send(f):
+            nonlocal retry_count
             try:
-                self.conn.send(cmdtype.value + UNIT_ID + cmd + END)
-                expect_ack = 1
-                self.conn.expect(Header.ack.value + UNIT_ID + cmd[:2] + END, timeout=acktimeout)
-
-                if sendrawdata is None:
-                    return
-
-                self.conn.send(sendrawdata)
-                expect_ack = 2
-                self.conn.expect(Header.ack.value + UNIT_ID + cmd[:2] + END, timeout=20)
-
+                f()
             except Closed:
                 self.reconnect = True
                 if retry_count:
                     logger.warning(f"Connection closed, retry {retry_count}")
                     retry_count -= 1
-                    continue
-                raise
-            except Timeout:
+                else:
+                    raise
+            except CommandNack:
                 self.reconnect = True
-                raise CommandNack('Data not acknowledged' if expect_ack == 2 else
-                                  'Command not acknowledged', cmdtype, cmd)
+                raise
+            except:
+                self.reconnect = True
+                logger.exception(f"Unexpected exception for Cmd:{cmdtype} {cmdtype.value+cmd}")
+                raise
+
+        while True:
+            if self.reconnect:
+                self.conn.reconnect()
+                self.reconnect = False
+            do_send(lambda: self.__send_cmd(acktimeout, cmd, cmdtype))
+            do_send(lambda: self.__send_raw_data(cmd, cmdtype, sendrawdata))
             break
+
+    def __send_raw_data(self, cmd, cmdtype, sendrawdata):
+        if sendrawdata is not None:
+            self.conn.send(sendrawdata)
+            if self.conn.expect(Header.ack.value + UNIT_ID + cmd[:2] + END, timeout=20) == -1:
+                raise CommandNack(f"Data not acknowledged [{cmdtype} {len(sendrawdata)}]")
+
+    def __send_cmd(self, acktimeout, cmd, cmdtype):
+        data = cmdtype.value + UNIT_ID + cmd + END
+        self.conn.send(data)
+        if self.conn.expect(Header.ack.value + UNIT_ID + cmd[:2] + END, timeout=acktimeout) == -1:
+            raise CommandNack(f"Command not acknowledged [{cmdtype} {data}]")
 
     def cmd_op(self, cmd, **kwargs):
         """Send operation command"""
-        self._cmd(Header.operation, cmd, **kwargs)
+        self.__cmd(Header.operation, cmd, **kwargs)
 
     def cmd_ref(self, cmd, **kwargs):
         """Send reference command and retrieve response"""
-        self._cmd(Header.reference, cmd, **kwargs)
+        self.__cmd(Header.reference, cmd, **kwargs)
         data = self.conn.recv()
         header = Header.response.value + UNIT_ID + cmd[:2]
         if not data.startswith(header):
@@ -128,12 +140,12 @@ class Protocol:
 
     def cmd_ref_bin(self, cmd, **kwargs):
         """Send command and retrieve binary response"""
-        self._cmd(Header.reference, cmd, **kwargs)
+        self.__cmd(Header.reference, cmd, **kwargs)
         try:
             res = self.conn.recv(timeout=10)
-        except Timeout as err:
+        except Timeout:
             self.reconnect = True
-            raise Timeout('Timeout waiting for bindata', err)
+            raise
         logger.debug(f"  < Response:{res}")
         return res
 
@@ -144,11 +156,18 @@ class Connection:
         self.__socket = None
         self.__port = port
         self.__host = host
+        self.__close_time = 0.0
 
     def connect(self):
         """Open network connection to projector and perform handshake"""
         if self.__socket is None:
             self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            request_time = time.time()
+            to_wait = 1.0 - (request_time - self.__close_time)
+            if 1 > to_wait > 0:
+                close_time_fmt = datetime.fromtimestamp(self.__close_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                logger.info(f"Waiting {to_wait:.3f}s to reopen socket [closed at: {close_time_fmt}]")
+                time.sleep(to_wait)
             try:
                 logger.info(f"Connecting to {self.__host}:{self.__port}")
                 self.__socket.settimeout(1)
@@ -156,9 +175,9 @@ class Connection:
                 logger.info(f"Connected to {self.__host}:{self.__port}")
                 self.__init_pj()
             except socket.timeout:
-                raise Timeout(f"Timed connecting to projector at {self.__host}:{self.__port}")
+                raise Timeout(f"Connection failed on timeout [{self.__host}:{self.__port}]")
             except Exception as err:
-                raise Error(f"Connection to failed {self.__host}:{self.__port}", err)
+                raise Error(f"Connection failed [{self.__host}:{self.__port}]", err)
 
     def __init_pj(self):
         logger.debug(f">> Protocol init")
@@ -172,8 +191,8 @@ class Connection:
             try:
                 self.connect()
             except Exception as e:
-                self.close()
                 logger.exception('Unexpected failure')
+                self.close()
                 raise e
             break
 
@@ -184,6 +203,7 @@ class Connection:
             logger.info(f"Closing connection to {self.__host}:{self.__port}")
             try:
                 self.__socket.close()
+                logger.info(f"Closed connection to {self.__host}:{self.__port}")
             except Exception as e:
                 if fail is True:
                     raise e
@@ -191,6 +211,7 @@ class Connection:
                     logger.exception(f"Unable to close connection to {self.__host}:{self.__port}")
             finally:
                 self.__socket = None
+                self.__close_time = time.time()
 
     def __exit__(self, exception, value, traceback):
         self.close()
@@ -209,7 +230,7 @@ class Connection:
         else:
             raise Error('Unable to send, not connected')
 
-    def recv(self, limit=1024, timeout=0):
+    def recv(self, limit=1024, timeout=1):
         if timeout:
             ready = select.select([self.__socket], [], [], timeout)
             if not ready[0]:
@@ -222,9 +243,14 @@ class Connection:
 
     def expect(self, expected, timeout=1):
         """Receive data and compare it against expected data"""
-        actual = self.recv(len(expected), timeout)
+        try:
+            actual = self.recv(len(expected), timeout)
+        except Timeout:
+            return -1
         if actual != expected:
             raise BadData(expected, actual)
+        else:
+            return 0
 
 
 class CommandExecutor:
@@ -252,14 +278,8 @@ class CommandExecutor:
         cmdcode, valtype = cmd.value
         if issubclass(valtype, WriteOnly):
             raise TypeError('{} is a write only command'.format(cmd.name))
-        try:
-            if issubclass(valtype, BinaryData):
-                response = self.conn.cmd_ref_bin(cmdcode)
-            else:
-                response = self.conn.cmd_ref(cmdcode)
-            return valtype(response)
-        except CommandNack as err:
-            raise CommandNack('Get: ' + err.args[0], cmd.name)
+        response = self.conn.cmd_ref_bin(cmdcode) if issubclass(valtype, BinaryData) else self.conn.cmd_ref(cmdcode)
+        return valtype(response)
 
     def set(self, cmd, val, verify=True):
         """Send operation command"""
@@ -267,13 +287,10 @@ class CommandExecutor:
         assert not issubclass(valtype, ReadOnly), '{} is a read only command'.format(cmd)
         val = valtype(val)
         assert(isinstance(val, valtype)), '{} is not {}'.format(val, valtype)
-        try:
-            if issubclass(valtype, BinaryData):
-                self.conn.cmd_op(cmdcode, sendrawdata=val.value)
-            else:
-                self.conn.cmd_op(cmdcode+val.value, acktimeout=5)
-        except CommandNack as err:
-            raise CommandNack('Set: ' + err.args[0], cmd.name, val)
+        if issubclass(valtype, BinaryData):
+            self.conn.cmd_op(cmdcode, sendrawdata=val.value)
+        else:
+            self.conn.cmd_op(cmdcode+val.value, acktimeout=5)
 
         if not verify or issubclass(valtype, NoVerify):
             return

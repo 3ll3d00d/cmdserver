@@ -1,9 +1,10 @@
-import sys
 import logging
 from enum import Enum
+from threading import Lock
+from time import sleep
 
 from debounce import debounce
-from jvc import CommandExecutor
+from jvc import CommandExecutor, CommandNack
 from jvccommands import Command, load_all_commands, Numeric
 
 logger = logging.getLogger('cmdserver.pjcontroller')
@@ -15,6 +16,7 @@ class PJController:
         self.__pj_macros = config.pj_macros
         self.__executor = CommandExecutor(host=config.pj_ip)
         self.__commands = load_all_commands()
+        self.__lock = Lock()
 
     def __connect(self):
         self.__executor.connect()
@@ -24,33 +26,43 @@ class PJController:
         self.__executor.disconnect(fail=False)
 
     def get(self, command):
-        try:
-            cmd = Command[command]
-            self.__connect()
-            val = self.__executor.get(cmd)
-            self.__disconnect()
-            if val is not None and isinstance(val, Enum):
-                return val.name
-            return val
-        except KeyError:
-            logger.warning(f"Ignoring unknown command {command}")
-            return None
-        except:
-            logger.exception(f"Unexpected failure while executing {command}")
-            return None
+        with self.__lock:
+            try:
+                cmd = Command[command]
+                self.__connect()
+                val = self.__executor.get(cmd)
+                self.__disconnect()
+                if val is not None:
+                    return val.name if isinstance(val, Enum) else val.replace('"', '').strip()
+                return val
+            except KeyError:
+                logger.warning(f"Ignoring unknown command {command}")
+                return None
+            except CommandNack:
+                logger.exception(f"Command NACKed - GET {command}")
+                return -1
+            except:
+                logger.exception(f"Unexpected failure while executing cmd: {command}")
+                return -1
 
     def send(self, commands):
         """ Sends the commands to the PJ """
-        vals = []
-        self.__connect()
-        for command in commands:
-            if command in self.__pj_macros:
-                for cmd in self.__pj_macros[command]:
-                    vals.append(self.__execute(cmd))
-            else:
-                vals.append(self.__execute(command))
-        self.__disconnect()
-        return vals
+        with self.__lock:
+            vals = []
+            self.__connect()
+            for command in commands:
+                if command[0:5] == 'PAUSE':
+                    sleep_secs = float(command[5:])
+                    logger.info(f"Sleeping for {sleep_secs:.3f}")
+                    sleep(sleep_secs)
+                else:
+                    if command in self.__pj_macros:
+                        for cmd in self.__pj_macros[command]:
+                            vals.append(self.__execute(cmd))
+                    else:
+                        vals.append(self.__execute(command))
+            self.__disconnect()
+            return vals
 
     def __execute(self, cmd):
         tokens = cmd.split('.')

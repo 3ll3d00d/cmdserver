@@ -26,10 +26,13 @@ class PJ(Resource):
         self.__pj_controller = kwargs['pj_controller']
 
     def get(self, command):
-        logger.info(f"GET {command}")
+        logger.info(f">> GET {command}")
         result = self.__pj_controller.get(command)
+        logger.info(f"<< GET {command} = {result}")
         if result is None:
             return None, 404
+        elif result == -1:
+            return None, 500
         else:
             return result, 200
 
