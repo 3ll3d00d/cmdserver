@@ -226,6 +226,20 @@ class PictureMode(Enum):
     HLG = b'14'
 
 
+class InstallationMode(Enum):
+    """Installation mode"""
+    ONE = b'0'
+    TWO = b'1'
+    THREE = b'2'
+    FOUR = b'3'
+    FIVE = b'4'
+    SIX = b'5'
+    SEVEN = b'6'
+    EIGHT = b'7'
+    NINE = b'8'
+    TEN = b'9'
+
+
 class IntelligentLensAperture(Enum):
     """Intelligent Lens Aperture Setting"""
     Off = b'0'
@@ -601,6 +615,7 @@ class Command(Enum):
     PanelAlignBlue = b'PB', PanelAlignment # Blue of Panel Alignment (zone)
     SourceAsk = b'SC', SourceAsk # Source asking [SourCe]
     Model = b'MD', Model   # Model status asking [MoDel]
+    InstallationMode = b'INML', InstallationMode # Installation Mode switch
 
     # Picture adjustment [adjustment of Picture] : Picture Adjust
     PictureMode = b'PMPM', PictureMode # Picture Mode switch
