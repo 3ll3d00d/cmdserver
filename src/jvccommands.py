@@ -5,6 +5,7 @@ logger = logging.getLogger(__name__)
 
 """ Commands from
  http://pro.jvc.com/pro/attributes/PRESENT/manual/2018_ILA-FPJ_Ext_Command_List_v1.2.pdf
+ (replaced by v2.0 https://github.com/nicko88/HTPCRemote/raw/master/IP%20Control%20Spec%20Documents/JVC_NX.pdf)
  http://www.us.jvc.com/projectors/pdf/2018_ILA-FPJ_Remote_Control_Code_Table_V1.1.pdf 
 """
 
@@ -428,6 +429,7 @@ class Anamorphic(Enum):
     A = b'1'
     B = b'2'
     C = b'3'
+    D = b'4'
 
 
 class PanelAlignmentSwitch(Enum):
