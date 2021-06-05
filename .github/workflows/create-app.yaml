@@ -46,6 +46,12 @@ jobs:
           mkdir ezmote
           tar xvfz ezmote.tar.gz -C ezmote
           rm ezmote.tar.gz
+      - name: Get latest release version number
+        id: get_version
+        uses: battila7/get-version-action@v2
+      - name: Set version
+        run: |
+          echo ${{ steps.get_version.outputs.version-without-v }} > src/VERSION
       - name: Create distribution
         id: create_dist
         run: |
