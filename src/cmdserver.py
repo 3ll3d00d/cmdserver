@@ -2,17 +2,19 @@ import faulthandler
 import os
 from os import path
 
+from autobahn.twisted.resource import WebSocketResource
 from flask import Flask
-from flask_restful import Api
+from flask_restx import Api
 
 from pj import PJ, UpdatePJ, Info
 from pjcontroller import PJController
 from command import Commands, Command
 from commandcontroller import CommandController
 from config import Config
-from playingnow import PlayingNow
+from playingnow import PlayingNow, InfoProvider
 from tivo import Tivos, Tivo
 from tivocontroller import TivoController
+from ws import WsServer
 
 API_PREFIX = '/api/1'
 
@@ -25,10 +27,13 @@ if hasattr(faulthandler, 'register'):
 app = Flask(__name__)
 api = Api(app)
 cfg = Config('cmdserver')
+ws_server = WsServer()
+info_provider = InfoProvider(cfg, ws_server)
 resource_args = {
     'command_controller': CommandController(cfg),
     'tivoController': TivoController(),
     'pj_controller': PJController(cfg),
+    'info_provider': info_provider,
     'config': cfg
 }
 
@@ -115,6 +120,8 @@ def main(args=None):
                 self.react = ReactApp(uiRoot)
                 self.static = static.File(os.path.join(uiRoot, 'static'))
                 self.icons = static.File(cfg.iconPath)
+                ws_server.factory.startFactory()
+                self.ws_resource = WebSocketResource(ws_server.factory)
 
             def getChild(self, path, request):
                 """
@@ -131,7 +138,9 @@ def main(args=None):
                 request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
                 request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
                 logger.debug(f"Handling {path}")
-                if path == b'api':
+                if path == b'ws':
+                    return self.ws_resource
+                elif path == b'api':
                     request.prepath.pop()
                     request.postpath.insert(0, path)
                     return self.wsgi

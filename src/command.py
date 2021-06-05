@@ -1,12 +1,13 @@
 import logging
 
-from flask_restful import Resource
+from flask_restx import Resource
 
 logger = logging.getLogger('cmdserver.command')
 
 
 class Commands(Resource):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__controller = kwargs['command_controller']
 
     def get(self):
@@ -14,7 +15,8 @@ class Commands(Resource):
 
 
 class Command(Resource):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__controller = kwargs['command_controller']
 
     def put(self, command):

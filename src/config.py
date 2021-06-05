@@ -8,6 +8,7 @@ import yaml
 
 
 class Config:
+
     def __init__(self, name, default_port=53199):
         self._name = name
         self.logger = logging.getLogger(name + '.config')
@@ -22,6 +23,8 @@ class Config:
         self.playingNowExe = self.config.get('playingNowExe', None)
         self.webappPath = self.config.get('webappPath', None)
         self.useTwisted = self.config.get('useTwisted', False)
+        self.mcws = self.config.get('mcws', {})
+        self.tivoname = self.config.get('tivoname', None)
 
     @staticmethod
     def ensure_dir_exists(dir):
@@ -117,7 +120,7 @@ class Config:
             'commands': {},
             'pjmacros': {},
             'playingNowExe': None,
-            'pjip': None,
+            'pjip': None
         }
 
     @property

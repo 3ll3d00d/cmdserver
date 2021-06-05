@@ -1,14 +1,15 @@
 import logging
 
 from flask import request
-from flask_restful import Resource
+from flask_restx import Resource
 
 logger = logging.getLogger('cmdserver.tivo')
 
 
 class Tivos(Resource):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__controller = kwargs['tivoController']
 
     def get(self):
@@ -33,7 +34,8 @@ class Tivos(Resource):
 
 class Tivo(Resource):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__controller = kwargs['tivoController']
 
     def get(self, tivo):

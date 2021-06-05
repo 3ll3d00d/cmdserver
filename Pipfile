@@ -4,14 +4,15 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-flask-restful = "*"
+autobahn = {extras = ["twisted"], version = "*"}
+flask-restx = ">=0.4.0"
 pyyaml = "*"
 plumbum = "*"
 netifaces = "*"
-twisted = "*"
+pymcws = "*"
 
 [dev-packages]
 pytest = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"

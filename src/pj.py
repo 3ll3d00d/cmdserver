@@ -1,7 +1,7 @@
 import logging
 
 from flask import request
-from flask_restful import Resource
+from flask_restx import Resource
 
 from jvccommands import get_all_command_info
 
@@ -10,7 +10,8 @@ logger = logging.getLogger('pyjvcpj.pj')
 
 class Info(Resource):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__pj_controller = kwargs['pj_controller']
         self.__supported = get_all_command_info()
 
@@ -22,7 +23,8 @@ class Info(Resource):
 
 
 class PJ(Resource):
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__pj_controller = kwargs['pj_controller']
 
     def get(self, command):
@@ -38,7 +40,9 @@ class PJ(Resource):
 
 
 class UpdatePJ(Resource):
-    def __init__(self, **kwargs):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.__pj_controller = kwargs['pj_controller']
 
     def put(self):
