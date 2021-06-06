@@ -117,12 +117,14 @@ class InfoProvider:
 
     def get_active_command(self, zone: Optional[dict]):
         if self.__launcher:
-            if zone and zone.get('externalSource', False) is True:
-                playing_now = self.__launcher.run(retcode=None)
-                playing_now_id = playing_now[0]
-                logger.debug("playingNow:" + str(playing_now_id))
-                if playing_now_id in self.__by_playing_now_id:
-                    return self.__by_playing_now_id[playing_now_id]
+            if zone:
+                pn = zone.get('playingNow', None)
+                if pn and pn['externalSource'] is True:
+                    playing_now = self.__launcher.run(retcode=None)
+                    playing_now_id = playing_now[0]
+                    logger.debug("playingNow:" + str(playing_now_id))
+                    if playing_now_id in self.__by_playing_now_id:
+                        return self.__by_playing_now_id[playing_now_id]
         return zone['name'] if zone else 'Music'
 
     @staticmethod
