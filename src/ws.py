@@ -4,7 +4,7 @@ from typing import Callable, Optional, List
 from autobahn.exception import Disconnected
 from autobahn.twisted import WebSocketServerProtocol, WebSocketServerFactory
 
-logger = logging.getLogger('ezbeq.ws')
+logger = logging.getLogger('cmdserver.ws')
 
 
 class WsServer:

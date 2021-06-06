@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 import pymcws
 import requests
@@ -61,7 +61,6 @@ class InfoProvider:
     def refresh(self):
         try:
             zones, active_zone = get_zones(self.__ms)
-            active_command = self.get_active_command()
             playback_info = pymcws.playback.info(self.__ms, active_zone)
             self.__current_state = {
                 'config': {
@@ -72,8 +71,9 @@ class InfoProvider:
                     'alive': True
                 },
                 'zones': {z.id: self.__zone_to_dict(z, playback_info if z == active_zone else None) for z in zones},
-                'playingCommand': {'active': active_command}
             }
+            active_command = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
+            self.__current_state['playingCommand'] = {'active': active_command}
             self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
         except:
             logger.exception(f"Failed to refresh current state")
@@ -115,16 +115,15 @@ class InfoProvider:
                 else:
                     zd['volumedb'] = -100.0
 
-    def get_active_command(self):
+    def get_active_command(self, zone: Optional[dict]):
         if self.__launcher:
-            playing_now = self.__launcher.run(retcode=None)
-            playing_now_id = playing_now[0]
-            logger.debug("playingNow:" + str(playing_now_id))
-            if playing_now_id in self.__by_playing_now_id:
-                return self.__by_playing_now_id[playing_now_id]
-            elif playing_now_id == 0:
-                return '0'
-        return ''
+            if zone and zone.get('externalSource', False) is True:
+                playing_now = self.__launcher.run(retcode=None)
+                playing_now_id = playing_now[0]
+                logger.debug("playingNow:" + str(playing_now_id))
+                if playing_now_id in self.__by_playing_now_id:
+                    return self.__by_playing_now_id[playing_now_id]
+        return zone['name'] if zone else 'Music'
 
     @staticmethod
     def __extract_status(playback_info):
