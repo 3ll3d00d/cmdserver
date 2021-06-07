@@ -42,7 +42,7 @@ jobs:
           pipenv run pip list
       - name: Download ezmote
         run: |
-          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/38161942" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
+          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/38185595" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
           mkdir ezmote
           tar xvfz ezmote.tar.gz -C ezmote
           rm ezmote.tar.gz
