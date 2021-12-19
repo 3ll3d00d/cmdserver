@@ -4,7 +4,6 @@ import re
 from typing import Tuple, List, Optional
 
 import pymcws
-import requests
 from flask_restx import Resource
 from plumbum import local
 from pymcws import MediaServer, Zone
@@ -34,6 +33,12 @@ class InfoProvider:
         self.__ws_server = ws_server
         self.__interval = float(config.mcws.get('interval', 0.25))
         self.__launcher = local[config.playingNowExe] if config.playingNowExe else None
+        self.__default_playing_now_id = None
+        for key, value in config.commands.items():
+            if 'playingNowId' in value:
+                is_default = value.get('defaultPlayingNowId', False)
+                if is_default is True:
+                    self.__default_playing_now_id = value['playingNowId']
         self.__by_playing_now_id = {value['playingNowId']: value['title']
                                     for key, value in config.commands.items() if 'playingNowId' in value}
         self.__ms: MediaServer = MediaServer('localhost', config.mcws['user'], config.mcws['pass'])
@@ -116,15 +121,17 @@ class InfoProvider:
                     zd['volumedb'] = -100.0
 
     def get_active_command(self, zone: Optional[dict]):
-        if self.__launcher:
-            if zone:
-                pn = zone.get('playingNow', None)
-                if pn and pn['externalSource'] is True:
+        if zone:
+            pn = zone.get('playingNow', None)
+            if pn and pn['externalSource'] is True:
+                if self.__launcher:
                     playing_now = self.__launcher.run(retcode=None)
                     playing_now_id = playing_now[0]
                     logger.debug("playingNow:" + str(playing_now_id))
                     if playing_now_id in self.__by_playing_now_id:
                         return self.__by_playing_now_id[playing_now_id]
+                elif self.__default_playing_now_id:
+                    return self.__default_playing_now_id
         return zone['name'] if zone else 'Music'
 
     @staticmethod
