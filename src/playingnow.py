@@ -131,7 +131,7 @@ class InfoProvider:
                     if playing_now_id in self.__by_playing_now_id:
                         return self.__by_playing_now_id[playing_now_id]
                 elif self.__default_playing_now_id:
-                    return self.__default_playing_now_id
+                    return self.__by_playing_now_id[self.__default_playing_now_id]
         return zone['name'] if zone else 'Music'
 
     @staticmethod

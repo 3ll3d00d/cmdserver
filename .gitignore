@@ -111,4 +111,4 @@ ENV/
 ezmote/
 src/VERSION
 scratch/
-src/ui/
+src/ui
