@@ -20,15 +20,15 @@ class Command(Resource):
         self.__controller = kwargs['command_controller']
 
     def put(self, command):
-        logger.info('Executing ' + command)
+        logger.info(f'Executing {command}')
         result = self.__controller.execute(command)
         if result is None:
-            logger.info('Unknown ' + command)
+            logger.info(f'Unknown {command}')
             return None, 404
         else:
             if result[0] == 0:
-                logger.info('Executed ' + command + ' successfully')
+                logger.info(f'Executed {command} successfully')
                 return None, 200
             else:
-                logger.info('Executed ' + command + ' with unexpected result ' + result[0])
+                logger.info(f'Executed {command} with unexpected result {result[0]}')
                 return {'errorCode': result[0]}, 500
