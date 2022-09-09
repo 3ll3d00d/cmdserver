@@ -56,7 +56,7 @@ class CommandController:
 class RemoteCommandExecutor:
 
     def __init__(self, address: str):
-        self.__address = address.replace('//', '/')
+        self.__address = address
         logger.info(f"Created RemoteCommandExecutor for {self.__address}")
 
     def __getitem__(self, item):
