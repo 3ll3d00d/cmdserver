@@ -23,7 +23,7 @@ class Command(Resource):
         logger.info('Executing ' + command)
         result = self.__controller.execute(command)
         if result is None:
-            logger.info('Executed ' + command + ' successfully')
+            logger.info('Unknown ' + command)
             return None, 404
         else:
             if result[0] == 0:
