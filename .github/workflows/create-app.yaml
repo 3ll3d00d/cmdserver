@@ -55,7 +55,7 @@ jobs:
       - name: Create distribution
         id: create_dist
         run: |
-          pipenv run pyinstaller --clean --log-level=INFO -F cmdserver.spec
+          pipenv run pyinstaller --clean --log-level=INFO cmdserver.spec
           echo ::set-output name=binary_path::"dist/cmdserver.exe"
           echo ::set-output name=binary_name::"cmdserver.exe"
           echo ::set-output name=binary_content_type::"application/vnd.microsoft.portable-executable"
