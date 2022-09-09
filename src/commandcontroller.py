@@ -4,7 +4,7 @@ import requests
 from plumbum import local
 
 
-logger = logging.getLogger('cmdserver.commandcontroller')
+logger = logging.getLogger('commandcontroller')
 
 
 class CommandController:

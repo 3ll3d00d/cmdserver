@@ -7,7 +7,7 @@ from debounce import debounce
 from jvc import CommandExecutor, CommandNack
 from jvccommands import Command, load_all_commands, Numeric
 
-logger = logging.getLogger('cmdserver.pjcontroller')
+logger = logging.getLogger('pjcontroller')
 
 
 class PJController:

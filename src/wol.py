@@ -2,7 +2,7 @@ import logging
 
 from wakeonlan import send_magic_packet
 
-logger = logging.getLogger('cmdserver.wol')
+logger = logging.getLogger('wol')
 
 
 class WakeMC:

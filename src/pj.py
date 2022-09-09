@@ -5,7 +5,7 @@ from flask_restx import Resource
 
 from jvccommands import get_all_command_info
 
-logger = logging.getLogger('pyjvcpj.pj')
+logger = logging.getLogger('pyjvcpj')
 
 
 class Info(Resource):

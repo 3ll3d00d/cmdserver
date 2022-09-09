@@ -3,7 +3,7 @@ import logging
 from flask import request
 from flask_restx import Resource
 
-logger = logging.getLogger('cmdserver.tivo')
+logger = logging.getLogger('tivo')
 
 
 class Tivos(Resource):

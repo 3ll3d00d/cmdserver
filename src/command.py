@@ -2,7 +2,7 @@ import logging
 
 from flask_restx import Resource
 
-logger = logging.getLogger('cmdserver.command')
+logger = logging.getLogger('command')
 
 
 class Commands(Resource):

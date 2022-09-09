@@ -6,7 +6,7 @@ import time
 
 import zeroconf
 
-logger = logging.getLogger('cmdserver.tivocontroller')
+logger = logging.getLogger('tivocontroller')
 
 # Mapping of commands to remote codes
 CODES = {

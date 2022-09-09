@@ -12,7 +12,7 @@ from twisted.internet import task
 from config import Config
 from ws import WsServer
 
-logger = logging.getLogger('cmdserver.playingnow')
+logger = logging.getLogger('playingnow')
 
 
 class PlayingNow(Resource):
