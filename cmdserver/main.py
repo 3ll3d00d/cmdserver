@@ -8,7 +8,7 @@ from flask import Flask
 from flask_restx import Api
 
 from cmdserver.pjcontroller import PJController
-from cmdserver.apis import command, commands, playingnow, tivo, tivos, pj, info, version
+from cmdserver.apis import command, commands, playingnow, tivo, tivos, pj, info, version, wake
 from cmdserver.commandcontroller import CommandController
 from cmdserver.config import Config
 from cmdserver.infoprovider import InfoProvider
@@ -52,6 +52,7 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
     decorate_ns(info.api)
     decorate_ns(pj.api)
     decorate_ns(version.api)
+    decorate_ns(wake.api)
     return app, ws_server
 
 

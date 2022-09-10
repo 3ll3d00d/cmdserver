@@ -32,6 +32,7 @@ class InfoProvider:
         self.__by_playing_now_id = {value['playingNowId']: value['title']
                                     for key, value in config.commands.items() if 'playingNowId' in value}
         self.__ms: MediaServer = MediaServer('localhost', config.mcws['user'], config.mcws['pass'])
+        self.__ms_mac: str = config.mcws.get('mac', '')
         self.__ms.port = int(config.mcws.get('port', 52199))
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
         self.__ms.local_ip = self.__ms.local_ip_list
@@ -72,6 +73,16 @@ class InfoProvider:
             self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
         except:
             logger.exception(f"Failed to refresh current state")
+
+    def wake(self) -> bool:
+        if self.__ms_mac:
+            from wakeonlan import send_magic_packet
+            logger.info(f"Sending magic packet to {self.__ms_mac}")
+            send_magic_packet(self.__ms_mac)
+            logger.info(f"Sent magic packet to {self.__ms_mac}")
+            return True
+        else:
+            return False
 
     @staticmethod
     def __zone_to_dict(zone: Zone, playback_info):
