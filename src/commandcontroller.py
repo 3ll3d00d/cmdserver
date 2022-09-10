@@ -66,6 +66,6 @@ class RemoteCommandExecutor:
     def run(self, **kwargs):
         r = requests.put(self.__address)
         if r.status_code == 200:
-            return [r.status_code, '']
+            return [0, '']
         else:
-            return [r.status_code, r.text]
+            return [2, f"{r.status_code} - {r.text}"]
