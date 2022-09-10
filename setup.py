@@ -11,7 +11,7 @@ else:
     version = "0.0.1-alpha.1+dirty"
 
 setup(
-    name="cmdserver",
+    name="ezmote-cmdserver",
     version=version,
     description="A small webapp which can be used for web based home cinema automation",
     long_description=readme,
