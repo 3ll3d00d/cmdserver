@@ -4,9 +4,11 @@ import socket
 import threading
 import time
 
-import zeroconf
+from cmdserver.zeroconf import Zeroconf, ServiceBrowser
+
 
 logger = logging.getLogger('tivocontroller')
+
 
 # Mapping of commands to remote codes
 CODES = {
@@ -297,9 +299,9 @@ class TivoController(object):
         tivos_names = []
 
         # Get the names of TiVos offering network remote control
-        serv = zeroconf.Zeroconf()
+        serv = Zeroconf()
         try:
-            browser = zeroconf.ServiceBrowser(serv, REMOTE, ZCListener(tivos_names))
+            browser = ServiceBrowser(serv, REMOTE, ZCListener(tivos_names))
             # Give them a second to respond
             time.sleep(1)
 

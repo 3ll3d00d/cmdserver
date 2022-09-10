@@ -1,19 +1,13 @@
 import logging
 
-from flask_restx import Resource
+from flask_restx import Resource, Namespace
 
 logger = logging.getLogger('command')
 
-
-class Commands(Resource):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__controller = kwargs['command_controller']
-
-    def get(self):
-        return {'commands': self.__controller.commands}
+api = Namespace('1/command', description='Provides ability to execute a configured command')
 
 
+@api.route('')
 class Command(Resource):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

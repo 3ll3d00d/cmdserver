@@ -13,11 +13,11 @@ if distutils_dir is not None and distutils_dir.endswith('__init__.py'):
 block_cipher = None
 spec_root = os.path.abspath(SPECPATH)
 
-a = Analysis(['src/cmdserver.py'],
+a = Analysis(['cmdserver/main.py'],
              pathex=[spec_root],
              binaries=[],
              datas=[
-                 ('src/VERSION', '.'),
+                 ('cmdserver/VERSION', '.'),
              ],
              hiddenimports=[],
              hookspath=[],

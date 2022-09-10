@@ -109,6 +109,6 @@ ENV/
 .vscode/
 
 ezmote/
-src/VERSION
+cmdserver/VERSION
 scratch/
-src/ui
+cmdserver/ui

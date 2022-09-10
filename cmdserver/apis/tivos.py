@@ -1,11 +1,14 @@
 import logging
 
 from flask import request
-from flask_restx import Resource
+from flask_restx import Resource, Namespace
 
-logger = logging.getLogger('tivo')
+logger = logging.getLogger('tivos')
+
+api = Namespace('1/tivos', description='Access to the tivo api')
 
 
+@api.route('')
 class Tivos(Resource):
 
     def __init__(self, *args, **kwargs):
@@ -30,17 +33,3 @@ class Tivos(Resource):
                 return {'error': str(e), **payload}, 500
         else:
             return 404
-
-
-class Tivo(Resource):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__controller = kwargs['tivoController']
-
-    def get(self, tivo):
-        tivo = self.__controller.get_tivo(tivo)
-        if tivo is None:
-            return 404
-        else:
-            return {'channel': tivo.currentChannel, 'messages': tivo.messages, 'connected': tivo.connected}, 200

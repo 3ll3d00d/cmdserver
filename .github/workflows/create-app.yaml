@@ -51,7 +51,7 @@ jobs:
         uses: battila7/get-version-action@v2
       - name: Set version
         run: |
-          echo ${{ steps.get_version.outputs.version-without-v }} > src/VERSION
+          echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
       - name: Create distribution
         id: create_dist
         run: |

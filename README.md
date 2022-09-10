@@ -19,7 +19,7 @@ Create a spec file changing the paths as appropriate
 
 	block_cipher = None
 
-	a = Analysis(['src\\cmdserver.py'],
+	a = Analysis(['cmdserver\\cmdserver.py'],
 				 pathex=['C:\\Users\\mattk\\github\\cmdserver'],
 				 binaries=[],
 				 datas=[],

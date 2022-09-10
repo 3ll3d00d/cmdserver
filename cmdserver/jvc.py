@@ -6,7 +6,7 @@ import socket
 import select
 import time
 
-from jvccommands import WriteOnly, BinaryData, ReadOnly, NoVerify
+from cmdserver.jvccommands import WriteOnly, BinaryData, ReadOnly, NoVerify
 
 PJ_ACK = b'PJACK'
 

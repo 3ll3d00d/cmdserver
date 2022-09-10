@@ -4,25 +4,15 @@ import re
 from typing import Tuple, List, Optional
 
 import pymcws
-from flask_restx import Resource
+
 from plumbum import local
 from pymcws import MediaServer, Zone
 from twisted.internet import task
 
-from config import Config
-from ws import WsServer
+from cmdserver.config import Config
+from cmdserver.ws import WsServer
 
-logger = logging.getLogger('playingnow')
-
-
-class PlayingNow(Resource):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__info_provider = kwargs['info_provider']
-
-    def get(self):
-        return self.__info_provider.info, 200
+logger = logging.getLogger('infoprovider')
 
 
 class InfoProvider:

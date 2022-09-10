@@ -3,9 +3,9 @@ from enum import Enum
 from threading import Lock
 from time import sleep
 
-from debounce import debounce
-from jvc import CommandExecutor, CommandNack
-from jvccommands import Command, load_all_commands, Numeric
+from cmdserver.debounce import debounce
+from cmdserver.jvc import CommandExecutor, CommandNack
+from cmdserver.jvccommands import Command, load_all_commands, Numeric
 
 logger = logging.getLogger('pjcontroller')
 

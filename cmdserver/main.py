@@ -1,20 +1,19 @@
 import faulthandler
 import os
 from os import path
+from typing import Tuple
 
 from autobahn.twisted.resource import WebSocketResource
 from flask import Flask
 from flask_restx import Api
 
-from pj import PJ, UpdatePJ, Info
-from pjcontroller import PJController
-from command import Commands, Command
-from commandcontroller import CommandController
-from config import Config
-from playingnow import PlayingNow, InfoProvider
-from tivo import Tivos, Tivo
-from tivocontroller import TivoController
-from ws import WsServer
+from cmdserver.pjcontroller import PJController
+from cmdserver.apis import command, commands, playingnow, tivo, tivos, pj, info, version
+from cmdserver.commandcontroller import CommandController
+from cmdserver.config import Config
+from cmdserver.infoprovider import InfoProvider
+from cmdserver.tivocontroller import TivoController
+from cmdserver.ws import WsServer
 
 API_PREFIX = '/api/1'
 
@@ -24,40 +23,43 @@ if hasattr(faulthandler, 'register'):
 
     faulthandler.register(signal.SIGUSR2, all_threads=True)
 
-app = Flask(__name__)
-api = Api(app)
-cfg = Config('cmdserver')
-ws_server = WsServer()
-info_provider = InfoProvider(cfg, ws_server)
-resource_args = {
-    'command_controller': CommandController(cfg),
-    'tivoController': TivoController(),
-    'pj_controller': PJController(cfg),
-    'info_provider': info_provider,
-    'config': cfg
-}
 
-# GET: gets the available commands
-api.add_resource(Commands, API_PREFIX + '/commands', resource_class_kwargs=resource_args)
-# PUT: executes a command
-api.add_resource(Command, API_PREFIX + '/commands/<command>', resource_class_kwargs=resource_args)
-# GET: gets the current state of the playback system
-api.add_resource(PlayingNow, API_PREFIX + '/playingnow', resource_class_kwargs=resource_args)
-# GET: available TIVOs
-# POST: send a command
-api.add_resource(Tivos, API_PREFIX + '/tivos', resource_class_kwargs=resource_args)
-# GET: get from tivo
-api.add_resource(Tivo, API_PREFIX + '/tivo/<tivo>', resource_class_kwargs=resource_args)
-# GET: get info
-api.add_resource(Info, API_PREFIX + '/info', resource_class_kwargs=resource_args)
-# GET: read only command
-api.add_resource(PJ, API_PREFIX + '/pj/<command>', resource_class_kwargs=resource_args)
-# PUT: write command
-api.add_resource(UpdatePJ, API_PREFIX + '/pj', resource_class_kwargs=resource_args)
+def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
+    ws_server = WsServer()
+    info_provider = InfoProvider(cfg, ws_server)
+    resource_args = {
+        'command_controller': CommandController(cfg),
+        'tivoController': TivoController(),
+        'pj_controller': PJController(cfg),
+        'info_provider': info_provider,
+        'config': cfg,
+        'version': cfg.version
+    }
+    app = Flask('cmdserver')
+    api = Api(app, prefix='/api', doc='/api/doc/', version=resource_args['version'], title='cmdserver',
+              description='Backend api for cmdserver')
+
+    def decorate_ns(ns, p=None):
+        for r in ns.resources:
+            r.kwargs['resource_class_kwargs'] = resource_args
+        api.add_namespace(ns, path=p)
+
+    decorate_ns(commands.api)
+    decorate_ns(command.api)
+    decorate_ns(playingnow.api)
+    decorate_ns(tivos.api)
+    decorate_ns(tivo.api)
+    decorate_ns(info.api)
+    decorate_ns(pj.api)
+    decorate_ns(version.api)
+    return app, ws_server
 
 
 def main(args=None):
     """ The main routine. """
+    cfg = Config('cmdserver')
+    app, ws_server = create_app(cfg)
+    logger = cfg.configure_logger()
     logger = cfg.configure_logger()
 
     if cfg.useTwisted:
