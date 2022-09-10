@@ -7,7 +7,7 @@ logger = logging.getLogger('command')
 api = Namespace('1/command', description='Provides ability to execute a configured command')
 
 
-@api.route('<string:command>')
+@api.route('/<string:command>')
 class Command(Resource):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
