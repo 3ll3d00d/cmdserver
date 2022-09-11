@@ -42,7 +42,7 @@ jobs:
           pipenv run pip list
       - name: Download ezmote
         run: |
-          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/76895284" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
+          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/77510018" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
           mkdir ezmote
           tar xvfz ezmote.tar.gz -C ezmote
           rm ezmote.tar.gz
@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Download ezmote
         run: |
-          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/76895284" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
+          curl -sL "https://api.github.com/repos/3ll3d00d/ezmote/releases/assets/77510018" -o ezmote.tar.gz -H 'Accept: application/octet-stream'
           mkdir -p cmdserver/ui
           tar xvfz ezmote.tar.gz -C cmdserver/ui
           rm ezmote.tar.gz
