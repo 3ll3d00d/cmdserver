@@ -3,6 +3,7 @@ import re
 import socket
 import threading
 import time
+from typing import Optional
 
 from cmdserver.zeroconf import Zeroconf, ServiceBrowser
 from cmdserver.config import Config
@@ -76,11 +77,11 @@ SHIFT_SYMS = {'_': 'MINUS', '+': 'EQUALS', '{': 'LBRACKET',
 class Tivo:
 
     def __init__(self, tivo: dict):
-        self._sock = None
+        self.__sock = None
         self.__tivo = tivo
         self.__messages = [''] * 5
-        self._messageIdx = 0
-        self.currentChannel = ''
+        self.__message_idx = 0
+        self.current_channel = ''
         if ':' in tivo['address']:
             address, port = tivo['address'].split(':')
             try:
@@ -112,38 +113,38 @@ class Tivo:
 
     @property
     def connected(self):
-        return self._sock is not None
+        return self.__sock is not None
 
     def __connect(self):
         """ Connect to the TiVo within five seconds or report error. """
         self.__messages = [''] * 5
-        self._messageIdx = 0
+        self.__message_idx = 0
         try:
-            self._sock = socket.socket()
-            self._sock.settimeout(5)
-            self._sock.connect((self.address, self.port))
-            self._sock.settimeout(None)
-            self._statusThread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket, daemon=True)
-            self._statusThread.start()
+            self.__sock = socket.socket()
+            self.__sock.settimeout(5)
+            self.__sock.connect((self.address, self.port))
+            self.__sock.settimeout(None)
+            self.__status_thread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket, daemon=True)
+            self.__status_thread.start()
         except Exception as e:
             self.__record_message('Unable to connect - ' + str(e))
             self.disconnect()
 
     def disconnect(self):
-        if self._sock:
+        if self.__sock:
             self.__record_message('Stopping on disconnect')
-            self._sock.close()
+            self.__sock.close()
             self.__record_message('Disconnected')
-            self._sock = None
+            self.__sock = None
         else:
             logger.info(f"Ignoring disconnect {self.name} has no socket")
 
     def __send(self, message):
         """ The core output function. Re-connect if necessary, send message, sleep, and check for errors. """
-        if not self._sock:
+        if not self.__sock:
             self.__connect()
         try:
-            self._sock.sendall(message.encode())
+            self.__sock.sendall(message.encode())
             time.sleep(0.1)
         except Exception as e:
             logger.error(e)
@@ -162,18 +163,18 @@ class Tivo:
                     if type(actual) == list:
                         self.send_ir(sent, *actual)
                     else:
-                        toSend = 'IRCODE %s\r' % actual
-                        sent.append(toSend)
-                        self.__send(toSend)
+                        to_send = 'IRCODE %s\r' % actual
+                        sent.append(to_send)
+                        self.__send(to_send)
                 else:
                     raise ValueError('Unknown IR Code ' + each)
-        return {'channel': self.currentChannel, 'sent': sent}
+        return {'channel': self.current_channel, 'sent': sent}
 
     def set_channel(self, channel):
         """ Sends a single SETCH. """
         toSend = 'SETCH %s\r' % channel
         self.__send(toSend)
-        return {'channel': self.currentChannel, 'sent': [toSend]}
+        return {'channel': self.current_channel, 'sent': [toSend]}
 
     def send_text(self, text):
         """ Expand a KEYBOARD command sequence for send(). """
@@ -187,35 +188,36 @@ class Tivo:
                 self.__send_keyboard(sent, SYMBOLS[ch])
             elif ch in SHIFT_SYMS:
                 self.__send_keyboard(sent, 'LSHIFT', SHIFT_SYMS[ch])
-        return {'channel': self.currentChannel, 'sent': sent}
+        return {'channel': self.current_channel, 'sent': sent}
 
     def __send_keyboard(self, sent, *codes):
         for each in codes:
-            toSend = 'KEYBOARD %s\r' % each
-            sent.append(toSend)
-            self.__send(toSend)
+            to_send = 'KEYBOARD %s\r' % each
+            sent.append(to_send)
+            self.__send(to_send)
 
     def __record_message(self, msg):
-        idx = self._messageIdx % 5
-        self._messageIdx += 1
+        idx = self.__message_idx % 5
+        self.__message_idx += 1
         self.__messages[idx] = msg
 
     def __read_from_socket(self):
         """ Read incoming messages from the socket in a separate thread.
         """
         logger.info(f"[{self.name}] Initialising status reader")
-        while self._sock is not None:
-            logger.info('Reading')
+        while self.__sock is not None:
+            logger.info(f'[{self.name}] Reading from socket')
             try:
-                status = self._sock.recv(80).decode()
+                status = self.__sock.recv(80).decode()
             except Exception as e:
                 status = str(e)
+                logger.warning(f"Failed to read - {status}")
             status = status.strip().title()
             if not status:
                 self.__record_message('No status read from socket')
                 self.disconnect()
             else:
-                self.currentChannel = status
+                self.current_channel = status
         logger.info(f"[{self.name}] Exiting status reader")
 
     @property
@@ -261,23 +263,23 @@ class TivoController(object):
         finally:
             self.__ping()
 
-    def has_tivo(self, tivo_name):
+    def has_tivo(self, tivo_name: str) -> bool:
         return True if next((t for t in self.__tivos if t.name == tivo_name), None) else False
 
-    def get_tivo(self, tivo_name):
+    def get_tivo(self, tivo_name: str) -> Optional[Tivo]:
         return next((t for t in self.__tivos if t.name == tivo_name), None)
 
-    def send(self, tivo_name, type, command):
+    def send(self, tivo_name, cmd_type, command):
         tivo = self.get_tivo(tivo_name)
         if tivo is not None:
-            if type == 'keyboard':
+            if cmd_type == 'keyboard':
                 return tivo.send_text(command)
-            elif type == 'ir':
+            elif cmd_type == 'ir':
                 return tivo.send_ir([], command)
-            elif type == 'setch':
+            elif cmd_type == 'setch':
                 return tivo.set_channel(command)
             else:
-                raise ValueError('Unknown command type ' + type)
+                raise ValueError('Unknown command type ' + cmd_type)
         else:
             raise ValueError('Unknown tivo ' + tivo_name)
 
@@ -286,7 +288,7 @@ class TivoController(object):
         return [
             {
                 **t.get_tivo_properties(),
-                **{'connected': t.connected, 'messages': t.messages, 'channel': t.currentChannel}
+                **{'connected': t.connected, 'messages': t.messages, 'channel': t.current_channel}
             }
             for t in self.__tivos
         ]

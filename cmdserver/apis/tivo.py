@@ -1,6 +1,7 @@
 import logging
 
 from flask_restx import Resource, Namespace
+from cmdserver.tivocontroller import Tivo as tivo_data
 
 logger = logging.getLogger('tivo')
 
@@ -14,9 +15,9 @@ class Tivo(Resource):
         super().__init__(*args, **kwargs)
         self.__controller = kwargs['tivoController']
 
-    def get(self, tivo):
-        tivo = self.__controller.get_tivo(tivo)
+    def get(self, tivo_name):
+        tivo: tivo_data = self.__controller.get_tivo(tivo_name)
         if tivo is None:
             return 404
         else:
-            return {'channel': tivo.currentChannel, 'messages': tivo.messages, 'connected': tivo.connected}, 200
+            return {'channel': tivo.current_channel, 'messages': tivo.messages, 'connected': tivo.connected}, 200
