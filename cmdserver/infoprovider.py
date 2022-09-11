@@ -36,7 +36,7 @@ class InfoProvider:
                     self.__default_playing_now_id = value['playingNowId']
         self.__by_playing_now_id = {value['playingNowId']: value['title']
                                     for key, value in config.commands.items() if 'playingNowId' in value}
-        self.__ms: MediaServer = MediaServer('localhost', config.mcws['user'], config.mcws['pass'])
+        self.__ms: MediaServer = MediaServer('localhost', config.mcws.get('user', None), config.mcws.get('pass', None))
         # make sure all calls in pymcws have a timeout not just connection checks
         self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=2)
         self.__ms_mac: str = config.mcws.get('mac', '')
@@ -83,6 +83,9 @@ class InfoProvider:
             self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
         except ConnectTimeout as e:
             logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+            self.__broadcast_down()
+        except ConnectionRefusedError as e:
+            logger.error(f"Unable to connect, MC appears down")
             self.__broadcast_down()
         except:
             logger.exception(f"Unexpected failure to refresh current state of {self.__ms.address()}")
