@@ -16,7 +16,7 @@ class Wake(Resource):
         super().__init__(*args, **kwargs)
         self.__info_provider: InfoProvider = kwargs['info_provider']
 
-    def put(self):
+    def get(self):
         try:
             if self.__info_provider.wake():
                 return '', 200
