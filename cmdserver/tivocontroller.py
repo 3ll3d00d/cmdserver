@@ -224,9 +224,12 @@ class Tivo(object):
 
 class TivoController(object):
 
-    def __init__(self):
-        self.__tivos = [Tivo(t) for t in self.__find_tivos()]
-        self.__ping()
+    def __init__(self, enabled: bool):
+        if enabled:
+            self.__tivos = [Tivo(t) for t in self.__find_tivos()]
+            self.__ping()
+        else:
+            self.__tivos = []
 
     def __ping(self, delay=15):
         time.sleep(delay)

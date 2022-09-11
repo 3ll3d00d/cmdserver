@@ -14,9 +14,13 @@ class PJController:
 
     def __init__(self, config):
         self.__pj_macros = config.pj_macros
-        self.__executor = CommandExecutor(host=config.pj_ip)
+        self.__executor = CommandExecutor(host=config.pj_ip) if config.pj_ip else None
         self.__commands = load_all_commands()
         self.__lock = Lock()
+
+    @property
+    def enabled(self):
+        return self.__executor is not None
 
     def __connect(self):
         self.__executor.connect()

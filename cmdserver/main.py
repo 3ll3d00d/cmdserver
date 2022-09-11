@@ -29,7 +29,7 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
     info_provider = InfoProvider(cfg, ws_server)
     resource_args = {
         'command_controller': CommandController(cfg),
-        'tivoController': TivoController(),
+        'tivoController': TivoController(cfg.use_tivo),
         'pj_controller': PJController(cfg),
         'info_provider': info_provider,
         'config': cfg,
@@ -60,7 +60,6 @@ def main(args=None):
     """ The main routine. """
     cfg = Config('cmdserver')
     app, ws_server = create_app(cfg)
-    logger = cfg.configure_logger()
     logger = cfg.configure_logger()
 
     if cfg.useTwisted:

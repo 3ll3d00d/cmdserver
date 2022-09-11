@@ -26,6 +26,7 @@ class Config:
         self.useTwisted = self.config.get('useTwisted', False)
         self.mcws = self.config.get('mcws', {})
         self.tivoname = self.config.get('tivoname', None)
+        self.use_tivo = self.config.get('useTivo', True)
 
     @staticmethod
     def ensure_dir_exists(dir):

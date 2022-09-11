@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import re
@@ -7,10 +8,14 @@ import pymcws
 
 from plumbum import local
 from pymcws import MediaServer, Zone
-from twisted.internet import task
+from requests import ConnectTimeout
+from twisted.internet import task, threads
+from twisted.internet.defer import Deferred
 
 from cmdserver.config import Config
 from cmdserver.ws import WsServer
+
+DEFAULT_ACTIVE_COMMAND = 'Music'
 
 logger = logging.getLogger('infoprovider')
 
@@ -32,6 +37,8 @@ class InfoProvider:
         self.__by_playing_now_id = {value['playingNowId']: value['title']
                                     for key, value in config.commands.items() if 'playingNowId' in value}
         self.__ms: MediaServer = MediaServer('localhost', config.mcws['user'], config.mcws['pass'])
+        # make sure all calls in pymcws have a timeout not just connection checks
+        self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=2)
         self.__ms_mac: str = config.mcws.get('mac', '')
         self.__ms.port = int(config.mcws.get('port', 52199))
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
@@ -54,7 +61,10 @@ class InfoProvider:
             self.__token = content['Token']
         return self.__token
 
-    def refresh(self):
+    def refresh(self) -> Deferred:
+        return threads.deferToThread(self.__async_refresh)
+
+    def __async_refresh(self):
         try:
             zones, active_zone = get_zones(self.__ms)
             playback_info = pymcws.playback.info(self.__ms, active_zone)
@@ -71,8 +81,29 @@ class InfoProvider:
             active_command = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
             self.__current_state['playingCommand'] = {'active': active_command}
             self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
+        except ConnectTimeout as e:
+            logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+            self.__broadcast_down()
         except:
-            logger.exception(f"Failed to refresh current state")
+            logger.exception(f"Unexpected failure to refresh current state of {self.__ms.address()}")
+            self.__broadcast_down()
+
+    def __broadcast_down(self):
+        was_alive = not self.__current_state or self.__current_state.get('config', {}).get('alive', True) is True
+        if was_alive:
+            logger.warning(f"Broadcasting MC is down")
+        self.__current_state = {
+            'config': {
+                'host': self.__ms.local_ip,
+                'port': self.__ms.port,
+                'token': None,
+                'ssl': False,
+                'alive': False
+            },
+            'zones': self.__current_state['zones'] if self.__current_state else {},
+            'playingCommand': {'active': DEFAULT_ACTIVE_COMMAND}
+        }
+        self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
 
     def wake(self) -> bool:
         if self.__ms_mac:
@@ -133,7 +164,7 @@ class InfoProvider:
                         return self.__by_playing_now_id[playing_now_id]
                 elif self.__default_playing_now_id:
                     return self.__by_playing_now_id[self.__default_playing_now_id]
-        return zone['name'] if zone else 'Music'
+        return zone['name'] if zone else DEFAULT_ACTIVE_COMMAND
 
     @staticmethod
     def __extract_status(playback_info):
