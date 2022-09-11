@@ -1,4 +1,5 @@
 import logging
+import time
 
 from flask_restx import Resource, Namespace
 
@@ -19,8 +20,8 @@ class Wake(Resource):
     def get(self):
         try:
             if self.__info_provider.wake():
-                return '', 200
+                return {'last': f'{time.time()}'}, 200
             else:
-                return 'No MAC address', 400
+                return {'error': 'No MAC address'}, 501
         except Exception as e:
-            return str(e), 500
+            return {'error': str(e)}, 500

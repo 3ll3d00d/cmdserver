@@ -29,7 +29,7 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
     info_provider = InfoProvider(cfg, ws_server)
     resource_args = {
         'command_controller': CommandController(cfg),
-        'tivoController': TivoController(cfg.use_tivo),
+        'tivoController': TivoController(cfg),
         'pj_controller': PJController(cfg),
         'info_provider': info_provider,
         'config': cfg,

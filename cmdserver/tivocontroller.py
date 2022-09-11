@@ -5,7 +5,7 @@ import threading
 import time
 
 from cmdserver.zeroconf import Zeroconf, ServiceBrowser
-
+from cmdserver.config import Config
 
 logger = logging.getLogger('tivocontroller')
 
@@ -73,8 +73,9 @@ SHIFT_SYMS = {'_': 'MINUS', '+': 'EQUALS', '{': 'LBRACKET',
               '*': 'NUM8', '(': 'NUM9', ')': 'NUM0'}
 
 
-class Tivo(object):
-    def __init__(self, tivo):
+class Tivo:
+
+    def __init__(self, tivo: dict):
         self._sock = None
         self.__tivo = tivo
         self.__messages = [''] * 5
@@ -224,11 +225,16 @@ class Tivo(object):
 
 class TivoController(object):
 
-    def __init__(self, enabled: bool):
-        if enabled:
+    def __init__(self, cfg: Config):
+        if cfg.tivo:
+            logger.info(f"Using static tivo config: {cfg.tivo}")
+            self.__tivos = [Tivo(cfg.tivo)]
+        elif cfg.find_tivo:
+            logger.info(f"Discovering Tivos")
             self.__tivos = [Tivo(t) for t in self.__find_tivos()]
             self.__ping()
         else:
+            logger.info(f"Tivo support disabled")
             self.__tivos = []
 
     def __ping(self, delay=15):
