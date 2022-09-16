@@ -8,7 +8,7 @@ logger = logging.getLogger('tivo')
 api = Namespace('1/tivo', description='Gets info about a named tivo')
 
 
-@api.route('/<string:tivo>')
+@api.route('/<string:tivo_name>')
 class Tivo(Resource):
 
     def __init__(self, *args, **kwargs):
