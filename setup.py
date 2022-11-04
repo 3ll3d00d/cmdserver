@@ -64,7 +64,7 @@ setup(
         "requests==2.28.1",
         "setuptools==65.3.0; python_version >= '3.7'",
         "six==1.16.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-        "twisted==22.8.0; python_full_version >= '3.7.1'",
+        "twisted==22.10.0; python_full_version >= '3.7.1'",
         "txaio==22.2.1; python_full_version >= '3.6.0'",
         "typing-extensions==4.3.0; python_version >= '3.7'",
         "urllib3==1.26.12; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5' and python_version < '4'",
