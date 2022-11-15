@@ -54,7 +54,7 @@ setup(
         "jsonschema==4.16.0; python_version >= '3.7'",
         "markupsafe==2.1.1; python_version >= '3.7'",
         "netifaces==0.11.0",
-        "pillow==9.2.0; python_version >= '3.7'",
+        "pillow==9.3.0; python_version >= '3.7'",
         "plumbum==1.7.2",
         "pycparser==2.21; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
         "pymcws==1.1.0",
