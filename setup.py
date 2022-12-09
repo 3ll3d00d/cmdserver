@@ -37,7 +37,7 @@ setup(
         "attrs==22.1.0; python_version >= '3.5'",
         "autobahn[twisted]==22.7.1",
         "automat==20.2.0",
-        "certifi==2022.6.15.1; python_full_version >= '3.6.0'",
+        "certifi==2022.12.7; python_full_version >= '3.6.0'",
         "cffi==1.15.1",
         "charset-normalizer==2.1.1; python_full_version >= '3.6.0'",
         "click==8.1.3; python_version >= '3.7'",
