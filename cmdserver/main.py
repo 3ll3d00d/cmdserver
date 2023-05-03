@@ -80,7 +80,7 @@ def main(args=None):
             def __init__(self, path):
                 # TODO allow this to load when in debug mode even if the files don't exist
                 self.publicFiles = {f: static.File(os.path.join(path, f)) for f in os.listdir(path) if
-                                    os.path.exists(os.path.join(path, f))}
+                                    os.path.exists(os.path.join(path, f))} if os.path.exists(path) else {}
                 self.indexHtml = ReactIndex(os.path.join(path, 'index.html'))
 
             def get_file(self, path):
@@ -118,7 +118,10 @@ def main(args=None):
                     # release script moves the ui under the analyser package because setuptools doesn't seem to include
                     # files from outside the package
                     uiRoot = os.path.join(os.path.dirname(__file__), 'ui')
-                logger.info('Serving ui from ' + str(uiRoot))
+                if os.path.exists(uiRoot):
+                    logger.info(f'Serving ui from {uiRoot}')
+                else:
+                    logger.info('No UI, API only')
                 self.react = ReactApp(uiRoot)
                 self.static = static.File(os.path.join(uiRoot, 'static'))
                 self.icons = static.File(cfg.iconPath)
@@ -161,6 +164,7 @@ def main(args=None):
             site = server.Site(FlaskAppWrapper(), logPath=path.join(cfg.config_path, 'access.log').encode())
         else:
             site = server.Site(FlaskAppWrapper())
+        logger.info(f'Listening on 0.0.0.0:{cfg.port}')
         endpoint = endpoints.TCP4ServerEndpoint(reactor, cfg.port, interface='0.0.0.0')
         endpoint.listen(site)
         reactor.run()
