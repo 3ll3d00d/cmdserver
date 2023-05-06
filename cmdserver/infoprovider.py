@@ -38,7 +38,7 @@ class InfoProvider:
                                     for key, value in config.commands.items() if 'playingNowId' in value}
         self.__ms: MediaServer = MediaServer('localhost', config.mcws.get('user', None), config.mcws.get('pass', None))
         # make sure all calls in pymcws have a timeout not just connection checks
-        self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=2)
+        self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=10)
         self.__ms_mac: str = config.mcws.get('mac', '')
         self.__ms.port = int(config.mcws.get('port', 52199))
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
@@ -64,10 +64,65 @@ class InfoProvider:
     def refresh(self) -> Deferred:
         return threads.deferToThread(self.__async_refresh)
 
+    def __extract_video_layout(self, file_key: Optional[str]) -> Optional[str]:
+        if file_key:
+            # default (no options set)
+            #        (1:1)(11:AspectRatio)(30:(1:4)(1:0)(1:0)(1:0)(1:1)(1:0))
+            # 1.6    (1:1)(11:AspectRatio)(35:(1:4)(1:0)(1:0)(6:196613)(1:1)(1:0))
+            # 1.78   (1:1)(11:AspectRatio)(35:(1:4)(1:0)(1:0)(6:589840)(1:1)(1:0))
+            # 1.85   (1:1)(11:AspectRatio)(36:(1:4)(1:0)(1:0)(7:1310757)(1:1)(1:0))
+            # 2.35   (1:1)(11:AspectRatio)(36:(1:4)(1:0)(1:0)(7:1310767)(1:1)(1:0))
+            # 2.40   (1:1)(11:AspectRatio)(35:(1:4)(1:0)(1:0)(6:327692)(1:1)(1:0))
+            # options are stored in this section : (1:0)(1:0)(6:327692)(1:1)(1:0)
+            #  * 0 = preserve AR, 1 = stretch, 2 = crop
+            #  * AR override
+            #  * 0 = none, 196613 = 1.66, 589840 = 1.78, 1310757 = 1.85, 1310767 = 2.35, 327692 = 2.4
+            #  * 1 = crop edges to sides of screen, 0 = off
+            #  * 1 = crop edges, 0 = off
+            resp = self.__ms.send_request('Files/GetInfo', {'Action': 'json', 'Keys': file_key, 'Fields': 'Playback Info'})
+            resp.raise_for_status()
+            results = resp.json()
+            if results:
+                playback_info = results[0].get('Playback Info')
+                if playback_info:
+                    ar_text = '(11:AspectRatio)'
+                    try:
+                        video_layout = playback_info[playback_info.index(ar_text) + len(ar_text):]
+                        import re
+                        tokens: List[str] = [x for x in re.split(r'[()]', video_layout) if x]
+                        if len(tokens) >= 7 and tokens[1] == '1:4':
+                            if tokens[4] == '1:0':
+                                return None
+                            elif tokens[4] == '6:196613':
+                                return '1.6'
+                            elif tokens[4] == '6:589840':
+                                return '1.78'
+                            elif tokens[4] == '7:1310757':
+                                return '1.85'
+                            elif tokens[4] == '7:1310767':
+                                return '2.35'
+                            elif tokens[4] == '6:327692':
+                                return '2.40'
+                    except:
+                        logger.info(f'Unable to parse file_key {file_key}, playback info is {playback_info}')
+                        pass
+        return None
+
     def __async_refresh(self):
         try:
             zones, active_zone = get_zones(self.__ms)
             playback_info = pymcws.playback.info(self.__ms, active_zone)
+            zones_data = {}
+            for z in zones:
+                if z == active_zone:
+                    zd, pn = self.__zone_to_dict(z, playback_info)
+                    vl = ''
+                    if pn and pn.get('status', None) != 'Stopped':
+                        vl = self.__extract_video_layout(pn.get('fileKey', None))
+                    pn['videoLayout'] = vl
+                else:
+                    zd = self.__zone_to_dict(z, None)
+                zones_data[z.id] = zd
             self.__current_state = {
                 'config': {
                     'host': self.__ms.local_ip,
@@ -76,7 +131,7 @@ class InfoProvider:
                     'ssl': False,
                     'alive': True
                 },
-                'zones': {z.id: self.__zone_to_dict(z, playback_info if z == active_zone else None) for z in zones},
+                'zones': zones_data
             }
             active_command = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
             self.__current_state['playingCommand'] = {'active': active_command}
@@ -121,9 +176,10 @@ class InfoProvider:
     @staticmethod
     def __zone_to_dict(zone: Zone, playback_info):
         zd = {'name': zone.name, 'id': zone.id, 'active': playback_info is not None}
+        pn = None
         if playback_info:
             InfoProvider.__extract_volume(playback_info, zd)
-            zd['playingNow'] = {
+            pn = {
                 'artist': playback_info.get('Artist', ''),
                 'album': playback_info.get('Album', ''),
                 'status': InfoProvider.__extract_status(playback_info),
@@ -136,7 +192,8 @@ class InfoProvider:
                 'externalSource': playback_info.get('Name', '') == 'Ipc'
             }
             zd['volumeRatio'] = float(playback_info.get('Volume', 0))
-        return zd
+        zd['playingNow'] = pn
+        return zd, pn
 
     @staticmethod
     def __extract_volume(playback_info: dict, zd: dict):
