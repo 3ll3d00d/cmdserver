@@ -38,7 +38,7 @@ class InfoProvider:
                                     for key, value in config.commands.items() if 'playingNowId' in value}
         self.__ms: MediaServer = MediaServer('localhost', config.mcws.get('user', None), config.mcws.get('pass', None))
         # make sure all calls in pymcws have a timeout not just connection checks
-        self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=10)
+        self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=2.5)
         self.__ms_mac: str = config.mcws.get('mac', '')
         self.__ms.port = int(config.mcws.get('port', 52199))
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
