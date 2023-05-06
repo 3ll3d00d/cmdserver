@@ -12,22 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Generate changelog
-        id: changelog
-        uses: metcalfc/changelog-generator@v4.0.1
-        with:
-          myToken: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          body: ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: true
       - name: Get latest release version number
         id: get_version
         uses: battila7/get-version-action@v2
@@ -83,12 +67,9 @@ jobs:
           echo ::set-output name=binary_path::"dist/cmdserver.exe"
           echo ::set-output name=binary_name::"cmdserver.exe"
           echo ::set-output name=binary_content_type::"application/vnd.microsoft.portable-executable"
-      - name: Upload asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: ${{ steps.create_dist.outputs.binary_name }}
-          asset_path: ${{ steps.create_dist.outputs.binary_path }}
-          asset_content_type: ${{ steps.create_dist.outputs.binary_content_type }}
+          files: dist/cmdserver.exe
+          prerelease: true
