@@ -7,9 +7,10 @@ defaults:
   run:
     shell: bash
 jobs:
-  create_release:
-    name: Create Release
-    runs-on: windows-latest
+  buildpypi:
+    name: Publish to Pypi
+    needs: create_release
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Generate changelog
@@ -28,6 +29,35 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: true
+      - name: Get latest release version number
+        id: get_version
+        uses: battila7/get-version-action@v2
+      - name: Set version
+        run: |
+          echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pip install wheel
+          pipenv --python 3.9 install -d
+          pip list
+          pipenv run pip list
+      - name: Build dist
+        run: python setup.py sdist bdist_wheel
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+  create_exe:
+    name: Create exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
@@ -62,33 +92,3 @@ jobs:
           asset_name: ${{ steps.create_dist.outputs.binary_name }}
           asset_path: ${{ steps.create_dist.outputs.binary_path }}
           asset_content_type: ${{ steps.create_dist.outputs.binary_content_type }}
-  buildpypi:
-    name: Publish to Pypi
-    needs: create_release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Get latest release version number
-        id: get_version
-        uses: battila7/get-version-action@v2
-      - name: Set version
-        run: |
-          echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pipenv
-          pip install wheel
-          pipenv --python 3.9 install -d
-          pip list
-          pipenv run pip list
-      - name: Build dist
-        run: python setup.py sdist bdist_wheel
-      - name: Publish a Python distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
