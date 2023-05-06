@@ -64,15 +64,9 @@ jobs:
         id: create_dist
         run: |
           pipenv run pyinstaller --clean --log-level=INFO cmdserver.spec
-      - name: Generate release changelog
-        id: changelog
-        uses: heinrichreimer/github-changelog-generator-action@v2.3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          body: ${{ steps.changelog.outputs.changelog }}
           files: dist/cmdserver.exe
           prerelease: true
