@@ -32,7 +32,6 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
           a.binaries,
-          Tree(f"{spec_root}/ezmote", prefix='ui'),
           a.zipfiles,
           a.datas,
           name='cmdserver',
