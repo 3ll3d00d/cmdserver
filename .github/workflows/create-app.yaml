@@ -9,7 +9,7 @@ defaults:
 jobs:
   create_release:
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - name: Generate changelog
@@ -28,6 +28,40 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: true
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv
+          pipenv --python 3.9 install -d
+          pipenv run pip install pyinstaller
+          pip list
+          pipenv run pip list
+      - name: Get latest release version number
+        id: get_version
+        uses: battila7/get-version-action@v2
+      - name: Set version
+        run: |
+          echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
+      - name: Create distribution
+        id: create_dist
+        run: |
+          pipenv run pyinstaller --clean --log-level=INFO cmdserver.spec
+          echo ::set-output name=binary_path::"dist/cmdserver.exe"
+          echo ::set-output name=binary_name::"cmdserver.exe"
+          echo ::set-output name=binary_content_type::"application/vnd.microsoft.portable-executable"
+      - name: Upload asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: ${{ steps.create_dist.outputs.binary_name }}
+          asset_path: ${{ steps.create_dist.outputs.binary_path }}
+          asset_content_type: ${{ steps.create_dist.outputs.binary_content_type }}
   buildpypi:
     name: Publish to Pypi
     needs: create_release
