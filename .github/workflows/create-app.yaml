@@ -9,7 +9,6 @@ defaults:
 jobs:
   buildpypi:
     name: Publish to Pypi
-    needs: create_release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -55,6 +54,7 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
   create_exe:
     name: Create exe
+    needs: buildpypi
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
