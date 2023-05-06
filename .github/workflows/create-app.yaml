@@ -11,7 +11,7 @@ jobs:
     name: Publish to Pypi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Get latest release version number
         id: get_version
         uses: battila7/get-version-action@v2
@@ -19,7 +19,7 @@ jobs:
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9"
       - name: Install build dependencies
@@ -41,7 +41,7 @@ jobs:
     needs: buildpypi
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
@@ -64,12 +64,15 @@ jobs:
         id: create_dist
         run: |
           pipenv run pyinstaller --clean --log-level=INFO cmdserver.spec
-          echo ::set-output name=binary_path::"dist/cmdserver.exe"
-          echo ::set-output name=binary_name::"cmdserver.exe"
-          echo ::set-output name=binary_content_type::"application/vnd.microsoft.portable-executable"
+      - name: Generate release changelog
+        id: changelog
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          body: ${{ steps.changelog.outputs.changelog }}
           files: dist/cmdserver.exe
           prerelease: true
