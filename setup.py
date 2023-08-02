@@ -43,7 +43,7 @@ setup(
         "charset-normalizer==3.1.0; python_full_version >= '3.7.0'",
         "click==8.1.3; python_full_version >= '3.7.0'",
         "constantly==15.1.0",
-        "cryptography==40.0.2; python_version >= '3.6'",
+        "cryptography==41.0.3; python_version >= '3.6'",
         "flask==2.3.2",
         "flask-restx==1.1.0",
         "hyperlink==21.0.0",
