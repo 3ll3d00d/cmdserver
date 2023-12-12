@@ -7,7 +7,7 @@ verify_ssl = true
 autobahn = {extras = ["twisted"], version = "*"}
 flask-restx = ">=0.4.0"
 Werkzeug = "*"
-flask = "*"
+flask = "<3"
 pyyaml = "*"
 plumbum = "*"
 netifaces = "*"
