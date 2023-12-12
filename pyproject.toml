@@ -9,7 +9,6 @@ homepage = "http://github.com/3ll3d00d/cmdserver"
 repository = "http://github.com/3ll3d00d/cmdserver"
 include = [
     "LICENSE",
-    "cmdserver/ui/**/*",
     "cmdserver/VERSION"
 ]
 packages = [
