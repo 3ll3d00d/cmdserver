@@ -1,3 +1,0 @@
-include LICENSE
-graft cmdserver/ui
-include cmdserver/VERSION

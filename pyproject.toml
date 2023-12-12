@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "ezmote-cmdserver"
+version = "1.0.0"
+description = "A small webapp which can be used for web based home cinema automation"
+authors = ["3ll3d00d <mattkhan+cmdserver@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "http://github.com/3ll3d00d/cmdserver"
+repository = "http://github.com/3ll3d00d/cmdserver"
+include = [
+    "LICENSE",
+    "cmdserver/ui/**/*",
+    "cmdserver/VERSION"
+]
+packages = [
+    { include = "cmdserver" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+autobahn = { extras = ["twisted"], version = "*" }
+flask-restx = "*"
+Werkzeug = "*"
+flask = "^2"
+pyyaml = "*"
+plumbum = "*"
+netifaces = "*"
+pymcws = "*"
+wakeonlan = "*"
+requests = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-httpserver = "*"
+
+[tool.poetry.group.exe]
+optional = true
+
+[tool.poetry.group.exe.dependencies]
+pyinstaller = { version = "*", python = ">=3.12" }
+
+[tool.poetry.scripts]
+ezbeq = 'cmdserver.main:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
