@@ -18,16 +18,16 @@ jobs:
       - name: Set version
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
-      - name: Set up Python 3.9
+      - name: Set up Python 3.12
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.12"
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pipenv
           pip install wheel
-          pipenv --python 3.9 install -d
+          pipenv --python 3.12 install -d
           pip list
           pipenv run pip list
       - name: Build dist
@@ -42,15 +42,15 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.9
+      - name: Set up Python 3.12
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.12"
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pipenv
-          pipenv --python 3.9 install -d
+          pipenv --python 3.12 install -d
           pipenv run pip install pyinstaller
           pip list
           pipenv run pip list
