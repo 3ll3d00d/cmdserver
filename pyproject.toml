@@ -32,6 +32,7 @@ requests = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 pytest-httpserver = "*"
+pytest-cov = "*"
 
 [tool.poetry.group.exe]
 optional = true

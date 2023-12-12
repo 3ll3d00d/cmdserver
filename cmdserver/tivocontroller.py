@@ -326,7 +326,7 @@ class TivoController(object):
             #             pass
 
             # Now get the addresses -- this is the slow part
-            swversion = re.compile('(\d*.\d*)').findall
+            swversion = re.compile(r'(\d*.\d*)').findall
             for t in tivos_names:
                 s = serv.get_service_info(REMOTE, t)
                 if s:
