@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ezmote-cmdserver"
-version = "1.0.1"
+version = "1.0.2"
 description = "A small webapp which can be used for web based home cinema automation"
 authors = ["3ll3d00d <mattkhan+cmdserver@gmail.com>"]
 license = "MIT"
@@ -40,7 +40,7 @@ optional = true
 pyinstaller = { version = "*", python = ">=3.12" }
 
 [tool.poetry.scripts]
-ezbeq = 'cmdserver.main:main'
+cmdserver = 'cmdserver.main:main'
 
 [build-system]
 requires = ["poetry-core"]
