@@ -15,9 +15,7 @@ class Config:
         self.logger = logging.getLogger(name + '.config')
         self.config = self.__load_config()
         self.iconPath = self.config.get('iconPath')
-        self.__hostname = self.config.get('host', self.default_hostname)
         self.__port = self.config.get('port', default_port)
-        self.__service_url = f"http://{self.hostname}:{self.port}"
         self.commands = self.config.get('commands', {})
         self.pj_macros = self.config.get('pjmacros', {})
         self.pj_ip = self.config.get('pjip', None)
@@ -34,11 +32,6 @@ class Config:
     def ensure_dir_exists(dir):
         if not os.path.exists(dir):
             os.makedirs(dir)
-
-    @property
-    def default_hostname(self):
-        import socket
-        return socket.getfqdn()
 
     @property
     def run_in_debug(self):
@@ -62,25 +55,11 @@ class Config:
         return self.config.get('accessLogging', False)
 
     @property
-    def hostname(self):
-        """
-        :return: the host the device is running on, defaults to that found by a call to socket.getfqdn()
-        """
-        return self.__hostname
-
-    @property
     def port(self):
         """
         :return: the port to listen on, defaults to 10001
         """
         return self.__port
-
-    @property
-    def service_url(self):
-        """
-        :return: the address on which this service is listening.
-        """
-        return self.__service_url
 
     def __load_config(self):
         """
@@ -118,7 +97,6 @@ class Config:
             'debugLogging': True,
             'accessLogging': False,
             'port': 53199,
-            'host': self.default_hostname,
             'iconPath': str(Path.home()),
             'commands': {},
             'pjmacros': {},

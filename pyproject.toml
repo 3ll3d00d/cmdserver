@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ezmote-cmdserver"
-version = "1.1.0"
+version = "1.1.1"
 description = "A small webapp which can be used for web based home cinema automation"
 authors = ["3ll3d00d <mattkhan+cmdserver@gmail.com>"]
 license = "MIT"
