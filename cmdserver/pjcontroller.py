@@ -9,7 +9,7 @@ from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PictureMode, Anamorphic, PowerState, \
     InstallationMode
-from mqtt import MQTT
+from cmdserver.mqtt import MQTT
 
 logger = logging.getLogger('pjcontroller')
 

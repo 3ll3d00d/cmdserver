@@ -7,7 +7,7 @@ from typing import Optional
 
 from cmdserver.zeroconf import Zeroconf, ServiceBrowser
 from cmdserver.config import Config
-from mqtt import MQTT
+from cmdserver.mqtt import MQTT
 
 logger = logging.getLogger('tivocontroller')
 

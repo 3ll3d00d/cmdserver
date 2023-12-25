@@ -14,7 +14,7 @@ from cmdserver.config import Config
 from cmdserver.infoprovider import InfoProvider
 from cmdserver.tivocontroller import TivoController
 from cmdserver.ws import WsServer
-from mqtt import MQTT
+from cmdserver.mqtt import MQTT
 
 API_PREFIX = '/api/1'
 
