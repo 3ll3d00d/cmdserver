@@ -1,22 +1,76 @@
+import json
 import logging
 from enum import Enum
 from threading import Lock
 from time import sleep
+from typing import Optional
 
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
-from cmdserver.jvccommands import Command, load_all_commands, Numeric
+from cmdserver.jvccommands import Command, load_all_commands, Numeric, PictureMode, Anamorphic, PowerState, \
+    InstallationMode
+from mqtt import MQTT
 
 logger = logging.getLogger('pjcontroller')
 
 
 class PJController:
 
-    def __init__(self, config):
+    def __init__(self, config, mqtt: Optional[MQTT]):
         self.__pj_macros = config.pj_macros
+        self.__mqtt = mqtt
         self.__executor = CommandExecutor(host=config.pj_ip) if config.pj_ip else None
         self.__commands = load_all_commands()
         self.__lock = Lock()
+        self.__state = {
+            'powerState': '',
+            'anamorphicMode': '',
+            'installationMode': '',
+            'pictureMode': '',
+            'power': False,
+            'hdr': '',
+            'anamorphic': ''
+        }
+        if mqtt:
+            from twisted.internet import reactor
+            reactor.callLater(0.5, self.__update_state)
+
+    def __update_state(self):
+        updated = False
+        with self.__lock:
+            cmd = Command.Power
+            try:
+                self.__connect()
+                power = self.__executor.get(cmd)
+                cmd = Command.Anamorphic
+                ana = self.__executor.get(cmd)
+                cmd = Command.PictureMode
+                pic = self.__executor.get(cmd)
+                cmd = Command.InstallationMode
+                install = self.__executor.get(cmd)
+                self.__state = {
+                    'powerState': power.name,
+                    'anamorphicMode': ana.name,
+                    'installationMode': install.name,
+                    'pictureMode': pic.name,
+                    'power': power == PowerState.LampOn,
+                    'hdr': pic == PictureMode.User5,
+                    'anamorphic': 'A' if ana == Anamorphic.A else 'B' if install == InstallationMode.TWO else None
+                }
+                updated = True
+                self.__disconnect()
+            except CommandNack:
+                logger.exception(f"Command NACKed - GET {cmd}")
+            except:
+                logger.exception(f"Unexpected failure while executing cmd: {cmd}")
+                return -1
+        self.__mqtt.publish('pj', json.dumps(self.__state))
+        from twisted.internet import reactor
+        reactor.callLater(0.5 if not updated else 30, self.__update_state)
+
+    @property
+    def state(self):
+        return self.__state
 
     @property
     def enabled(self):

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ezmote-cmdserver"
-version = "1.0.3"
+version = "1.0.4"
 description = "A small webapp which can be used for web based home cinema automation"
 authors = ["3ll3d00d <mattkhan+cmdserver@gmail.com>"]
 license = "MIT"
@@ -27,6 +27,7 @@ netifaces = "*"
 pymcws = "*"
 wakeonlan = "*"
 requests = "*"
+paho-mqtt = "^1.6.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

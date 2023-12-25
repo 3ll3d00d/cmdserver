@@ -7,9 +7,9 @@ from typing import Optional
 
 from cmdserver.zeroconf import Zeroconf, ServiceBrowser
 from cmdserver.config import Config
+from mqtt import MQTT
 
 logger = logging.getLogger('tivocontroller')
-
 
 # Mapping of commands to remote codes
 CODES = {
@@ -73,12 +73,281 @@ SHIFT_SYMS = {'_': 'MINUS', '+': 'EQUALS', '{': 'LBRACKET',
               '$': 'NUM4', '%': 'NUM5', '^': 'NUM6', '&': 'NUM7',
               '*': 'NUM8', '(': 'NUM9', ')': 'NUM0'}
 
+# generated from https://www.virginmedia.com/content/dam/virginmedia/dotcom/documents/Redwood/ChannelGuide_June2019.pdf
+# linked from https://www.virginmedia.com/virgin-tv-edit/tips-and-tricks/virgin-tv-channel-guide
+CHANNELS = {
+    '100': 'Virgin TV Showcase',
+    '101': 'BBC One HD',
+    '102': 'BBC Two HD',
+    '103': 'ITV1 HD & STV HD',
+    '104': 'Channel 4/HD & S4C HD',
+    '105': 'Channel 5 HD',
+    '106': 'E4 HD',
+    '107': 'BBC Three HD & BBC Four HD',
+    '108': 'BBC Four HD/Channel 4 HD Wales',
+    '109': 'Sky Showcase HD',
+    '110': 'Sky Witness HD',
+    '111': 'Sky Max HD',
+    '112': 'Sky Comedy HD',
+    '113': 'BBC Three HD Scotland & Wales',
+    '114': 'alibi HD',
+    '115': 'ITV2 HD',
+    '116': 'Drama HD',
+    '117': 'ITV3 HD',
+    '118': 'ITV4 HD',
+    '119': 'ITVBe HD',
+    '120': '5 USA',
+    '121': 'Sky Crime HD',
+    '122': 'Sky Sci-Fi HD',
+    '123': 'Sky Arts HD',
+    '124': 'GOLD HD',
+    '125': 'W HD',
+    '126': '5STAR',
+    '127': 'Dave HD',
+    '128': 'Really',
+    '129': 'Yesterday HD',
+    '130': '5ACTION HD',
+    '131': 'Sky HISTORYHD',
+    '132': 'Comedy Central HD',
+    '133': 'Crime + Investigation HD',
+    '134': 'MTV HD',
+    '135': 'Sky Mix',
+    '136': 'Together',
+    '137': 'Quest HD',
+    '138': '5Select',
+    '139': 'Challenge',
+    '140': 'Sky Arts',
+    '143': '4Seven HD',
+    '144': 'E4 Extra',
+    '147': 'More4 HD',
+    '148': 'CBS Reality',
+    '149': 'Legend',
+    '150': 'That’s TV',
+    '154': 'Comedy Central Extra',
+    '156': 'Sky Replay',
+    '159': 'Regional Channels',
+    '160': 'E! HD',
+    '161': 'BBC Alba',
+    '162': '5USA',
+    '164': 'S4C HD',
+    '165': 'TLC HD',
+    '166': 'Investigation Discovery',
+    '168': 'Quest Red',
+    '169': 'DMAX',
+    '170': 'GREAT TV',
+    '171': 'Horror Xtra',
+    '172': 'RealityXtra',
+    '174': 'BLAZE',
+    '175': 'Virgin TV Ultra HD',
+    '176': 'Eden HD',
+    '177': 'Discovery HD',
+    '178': 'Animal Planet HD',
+    '179': 'Discovery Science',
+    '180': 'Discovery Turbo',
+    '181': 'Discovery History',
+    '182': 'National Geographic WILD HD',
+    '183': 'National Geographic HD',
+    '186': 'Sky HISTORY2HD',
+    '187': 'PBS America',
+    '188': 'Sky Documentaries HD',
+    '189': 'Sky Nature HD',
+    '190': 'Food Network',
+    '191': 'HGTV',
+    '192': 'God TV',
+    '360': 'Welcome',
+    '204': 'Netflix',
+    '205': 'Prime Video',
+    '220': 'Inside Crime',
+    '221': 'Real Wild',
+    '222': 'Mystery TV',
+    '223': 'Haunt TV',
+    '224': 'History Hit',
+    '230': 'Homes Under The Hammer',
+    '231': 'Great British Menu',
+    '232': 'Tastemade',
+    '242': 'NextUp Live Comedy',
+    '243': 'The Chat Show Channel',
+    '244': 'Baywatch',
+    '250': 'Deal Or No Deal',
+    '251': 'Fear Factor',
+    '252': 'Wipeout Xtra',
+    '991': 'BBC Red Button HD',
+    '998': 'Virgin TV Highlights',
+    '999': 'Virgin TV Ultra HD',
+    '280': 'MTV Music',
+    '281': 'MTV Live HD',
+    '282': 'MTV Hits',
+    '283': 'MTV 90s',
+    '284': 'MTV 80s',
+    '285': 'The Box',
+    '286': '4Music',
+    '288': 'Kiss',
+    '289': 'Magic',
+    '290': 'Kerrang!',
+    '291': 'Vevo',
+    '292': 'Clubland TV',
+    '293': 'Now 70s',
+    '294': 'Now 80s',
+    '295': 'Now Rock',
+    '296': 'That’s 60s',
+    '303': 'ITV1 +1 & STV +1',
+    '304': 'Channel 4 +1',
+    '305': 'Channel 5 +1',
+    '306': 'E4 +1',
+    '310': 'Sky Witness +1',
+    '314': 'alibi +1',
+    '315': 'ITV2 +1',
+    '316': 'Drama HD +1',
+    '317': 'ITV3 +1',
+    '318': 'ITV4 +1',
+    '319': 'ITVBe +1',
+    '320': '5 USA +1',
+    '321': 'Sky Crime +1',
+    '324': 'GOLD +1',
+    '325': 'W +1',
+    '326': '5STAR +1',
+    '327': 'Dave ja vu',
+    '329': 'Yesterday HD +1',
+    '331': 'Sky HISTORY +1',
+    '332': 'Comedy Central +1',
+    '333': 'Crime + Investigation +1',
+    '337': 'Quest +1',
+    '347': 'More4 +1',
+    '348': 'CBS Reality +1',
+    '365': 'TLC +1',
+    '366': 'Investigation Discovery +1',
+    '369': 'DMAX +1',
+    '371': 'HorrorXtra +1',
+    '376': 'Eden +1',
+    '377': 'Discovery +1',
+    '378': 'Animal Planet +1',
+    '379': 'Discovery Science +1',
+    '381': 'Discovery History +1',
+    '383': 'National Geographic +1',
+    '391': 'HGTV +1',
+    '400': 'Virgin Movies & Store',
+    '401': 'Sky Cinema Premiere HD',
+    '402': 'Sky Cinema Select HD',
+    '403': 'Sky Cinema Hits HD',
+    '404': 'Sky Cinema Greats HD',
+    '406': 'Sky Cinema Family HD',
+    '407': 'Sky Cinema Action HD',
+    '408': 'Sky Cinema Comedy HD',
+    '409': 'Sky Cinema Thriller HD',
+    '410': 'Sky Cinema Drama HD',
+    '411': 'Sky Cinema Sci-Fi & Horror HD',
+    '412': 'Sky Cinema Animation HD',
+    '419': 'Movies 24',
+    '420': 'Movies 24 +1',
+    '424': 'Great! Romance',
+    '425': 'Great! Movies',
+    '426': 'Great! Action',
+    '428': 'Film4 HD',
+    '430': 'Film4 +1',
+    '445': 'Talking Pictures TV',
+    '501': 'Sky Sports Main Event/HD',
+    '502': 'Sky Sports Premier League/HD',
+    '503': 'Sky Sports Football/HD',
+    '504': 'Sky Sports Cricket/HD',
+    '505': 'Sky Sports Golf/HD',
+    '506': 'Sky Sports F1®/HD',
+    '507': 'Sky Sports Action/HD',
+    '508': 'Sky Sports Arena/HD',
+    '509': 'Sky Sports News HD',
+    '510': 'Sky Sports Mix HD',
+    '519': 'Sky Sports Racing HD',
+    '521': 'Eurosport 1 HD',
+    '522': 'Eurosport 2 HD',
+    '526': 'MUTV',
+    '527': 'TNT Sports 1 HD',
+    '528': 'TNT Sports 2 HD',
+    '529': 'TNT Sports 3 HD',
+    '530': 'TNT Sports 4 HD',
+    '531': 'TNT Sports Ultimate',
+    '532': 'Sky Sports Main Event UHD',
+    '533': 'Sky Sports F1® UHD',
+    '534': 'Sky Sports UHD',
+    '535': 'Sky Sports UHD 2',
+    '536': 'Racing TV HD',
+    '544': 'LFC TV HD',
+    '551': 'Viaplay Sports 1 HD',
+    '552': 'Viaplay Sports 2 HD',
+    '553': 'Viaplay Xtra',
+    '601': 'BBC News HD',
+    '602': 'Sky News/HD',
+    '604': 'GB News',
+    '605': 'BBC Parliament',
+    '606': 'TalkTV',
+    '609': 'Bloomberg HD',
+    '613': 'CNBC',
+    '614': 'NBC News NOW HD',
+    '620': 'Euronews',
+    '621': 'NDTV 24x7',
+    '622': 'Al Jazeera English',
+    '624': 'France 24 English HD',
+    '625': 'NHKworld HD',
+    '700': 'Kids TV On Demand',
+    '701': 'CBBC HD',
+    '702': 'CBeebies HD',
+    '703': 'Baby TV',
+    '704': 'Cartoon Network HD',
+    '702': 'CBeebies HD',
+    '703': 'Baby TV',
+    '704': 'Cartoon Network HD',
+    '705': 'Cartoon Network +1',
+    '706': 'Cartoonito',
+    '707': 'Sky Kids HD',
+    '712': 'Nickelodeon HD',
+    '713': 'Nick +1',
+    '715': 'Nick Jr.',
+    '716': 'Nick Jr. Too',
+    '717': 'Nicktoons',
+    '730': 'Boomerang',
+    '731': 'Boomerang +1',
+    '736': 'Pop',
+    '737': 'Tiny Pop',
+    '740': 'QVC HD',
+    '741': 'QVC Beauty',
+    '742': 'QVC Style HD',
+    '743': 'QVC Extra',
+    '748': 'Create and Craft',
+    '755': 'Gems TV',
+    '757': 'TJC HD',
+    '801': 'Utsav Gold HD',
+    '802': 'Utsav Bharat',
+    '803': 'Utsav Plus HD',
+    '805': 'SONY TV HD',
+    '806': 'SONY MAX HD',
+    '807': 'SONY SAB',
+    '808': 'SONY MAX 2',
+    '809': 'Zee TV HD',
+    '810': 'Zee Cinema HD',
+    '815': 'B4U Movies',
+    '816': 'B4U Music',
+    '825': 'Colors Gujarati',
+    '826': 'Colors TV HD',
+    '827': 'Colors Rishtey',
+    '828': 'Colors Cineplex',
+    '829': 'NDTV Good Times',
+    '831': 'Al Jazeera Arabic',
+    '838': 'Islam Channel',
+    '839': 'Islam Channel Urdu',
+    '159': 'Regional Channels',
+    '861': 'BBC One London HD',
+    '862': 'BBC One Scotland HD',
+    '863': 'BBC One NI HD',
+    '864': 'BBC One Wales HD',
+    '865': 'BBC Two England HD',
+    '870': 'ITV1'
+}
+
 
 class Tivo:
 
-    def __init__(self, tivo: dict):
+    def __init__(self, tivo: dict, mqtt: MQTT):
         self.__sock = None
         self.__tivo = tivo
+        self.__mqtt = mqtt
         self.__messages = [''] * 5
         self.__message_idx = 0
         self.current_channel = ''
@@ -125,7 +394,8 @@ class Tivo:
             self.__sock.settimeout(5)
             self.__sock.connect((self.address, self.port))
             self.__sock.settimeout(None)
-            self.__status_thread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket, daemon=True)
+            self.__status_thread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket,
+                                                    daemon=True)
             self.__status_thread.start()
         except Exception as e:
             self.__record_message('Unable to connect - ' + str(e))
@@ -218,6 +488,7 @@ class Tivo:
                 self.__record_message('No status read from socket')
                 self.disconnect()
             else:
+                last_ch = self.current_channel
                 self.current_channel = status
                 if status.startswith('Ch_Status'):
                     try:
@@ -226,6 +497,10 @@ class Tivo:
                         self.current_channel_num = -1
                 else:
                     self.current_channel_num = -1
+                if last_ch != self.current_channel and self.__mqtt:
+                    import json
+                    self.__mqtt.publish(f'tivo/{self.name}',
+                                        json.dumps({'num': self.current_channel_num, 'name': self.current_channel}))
         logger.info(f"[{self.name}] Exiting status reader")
 
     @property
@@ -235,13 +510,13 @@ class Tivo:
 
 class TivoController(object):
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, mqtt: Optional[MQTT]):
         if cfg.tivo:
             logger.info(f"Using static tivo config: {cfg.tivo}")
-            self.__tivos = [Tivo(cfg.tivo)]
+            self.__tivos = [Tivo(cfg.tivo, mqtt)]
         elif cfg.find_tivo:
             logger.info(f"Discovering Tivos")
-            self.__tivos = [Tivo(t) for t in self.__find_tivos()]
+            self.__tivos = [Tivo(t, mqtt) for t in self.__find_tivos()]
             self.__ping()
         else:
             logger.info(f"Tivo support disabled")
@@ -286,6 +561,12 @@ class TivoController(object):
                 return tivo.send_ir([], command)
             elif cmd_type == 'setch':
                 return tivo.set_channel(command)
+            elif cmd_type == 'setchno':
+                ch_num = next((k for k, v in CHANNELS.items() if v == command), '')
+                if ch_num:
+                    return tivo.set_channel(ch_num)
+                else:
+                    return ValueError(f'Unknown channel {command}')
             else:
                 raise ValueError('Unknown command type ' + cmd_type)
         else:

@@ -23,10 +23,10 @@ class Config:
         self.pj_ip = self.config.get('pjip', None)
         self.playingNowExe = self.config.get('playingNowExe', None)
         self.webappPath = self.config.get('webappPath', None)
-        self.useTwisted = self.config.get('useTwisted', False)
         self.mcws = self.config.get('mcws', {})
         self.tivoname = self.config.get('tivoname', None)
         self.find_tivo = self.config.get('findTivo', False)
+        self.mqtt = self.config.get('mqtt', {})
         # name, port, version, address
         self.tivo = self.config.get('tivo', None)
 
@@ -119,12 +119,12 @@ class Config:
             'accessLogging': False,
             'port': 53199,
             'host': self.default_hostname,
-            'useTwisted': False,
             'iconPath': str(Path.home()),
             'commands': {},
             'pjmacros': {},
             'playingNowExe': None,
-            'pjip': None
+            'pjip': None,
+            'mqtt': None
         }
 
     @property

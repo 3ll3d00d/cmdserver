@@ -96,6 +96,5 @@ Example config
     debugLogging: true
     host: megatron
     port: 53199
-    useTwisted: true
     # use for debug
     webappPath: 'C:\Users\mattk\github\ezmote\build'
