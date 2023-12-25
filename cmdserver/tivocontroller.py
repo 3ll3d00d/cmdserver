@@ -82,6 +82,7 @@ class Tivo:
         self.__messages = [''] * 5
         self.__message_idx = 0
         self.current_channel = ''
+        self.current_channel_num = -1
         if ':' in tivo['address']:
             address, port = tivo['address'].split(':')
             try:
@@ -218,6 +219,13 @@ class Tivo:
                 self.disconnect()
             else:
                 self.current_channel = status
+                if status.startswith('Ch_Status'):
+                    try:
+                        self.current_channel_num = int(status.split()[1])
+                    except:
+                        self.current_channel_num = -1
+                else:
+                    self.current_channel_num = -1
         logger.info(f"[{self.name}] Exiting status reader")
 
     @property
@@ -288,7 +296,8 @@ class TivoController(object):
         return [
             {
                 **t.get_tivo_properties(),
-                **{'connected': t.connected, 'messages': t.messages, 'channel': t.current_channel}
+                **{'connected': t.connected, 'messages': t.messages, 'channel': t.current_channel,
+                   'channelNumber': t.current_channel_num}
             }
             for t in self.__tivos
         ]
