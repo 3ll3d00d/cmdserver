@@ -39,7 +39,7 @@ class MQTT:
 
     def publish(self, source: str, payload):
         logger.info(f'Publishing {source} -- {payload}')
-        self.__client.publish(f'cmdserver/{source}', qos=2, payload=payload)
+        self.__client.publish(f'cmdserver/{source}', qos=1, payload=payload, retain=True)
 
     def online(self, source: str):
         self.publish(f'{source}/available', 'online')
