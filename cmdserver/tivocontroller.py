@@ -394,6 +394,8 @@ class Tivo:
             self.__sock.settimeout(5)
             self.__sock.connect((self.address, self.port))
             self.__sock.settimeout(None)
+            if self.__mqtt:
+                self.__mqtt.online(f'tivo/{self.name}')
             self.__status_thread = threading.Thread(name='TivoStatusReader', target=self.__read_from_socket,
                                                     daemon=True)
             self.__status_thread.start()
@@ -409,6 +411,8 @@ class Tivo:
             self.__sock = None
         else:
             logger.info(f"Ignoring disconnect {self.name} has no socket")
+        if self.__mqtt:
+            self.__mqtt.offline(f'tivo/{self.name}')
 
     def __send(self, message):
         """ The core output function. Re-connect if necessary, send message, sleep, and check for errors. """
@@ -498,9 +502,8 @@ class Tivo:
                 else:
                     self.current_channel_num = -1
                 if last_ch != self.current_channel and self.__mqtt:
-                    import json
-                    self.__mqtt.publish(f'tivo/{self.name}',
-                                        json.dumps({'num': self.current_channel_num, 'name': self.current_channel}))
+                    ch_name = CHANNELS.get(str(self.current_channel_num), 'Unknown')
+                    self.__mqtt.publish(f'tivo/{self.name}/state', ch_name)
         logger.info(f"[{self.name}] Exiting status reader")
 
     @property
