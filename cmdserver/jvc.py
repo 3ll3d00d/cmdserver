@@ -16,7 +16,7 @@ PJ_OK = b'PJ_OK'
 
 DEFAULT_PORT = 20554
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('jvc')
 
 
 class Error(Exception):

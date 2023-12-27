@@ -11,6 +11,7 @@ from pymcws import MediaServer, Zone
 from requests import ConnectTimeout
 from twisted.internet import task, threads
 from twisted.internet.defer import Deferred
+from urllib3.exceptions import MaxRetryError
 
 from cmdserver.config import Config
 from cmdserver.ws import WsServer
@@ -90,6 +91,18 @@ class InfoProvider:
             self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
         except ConnectTimeout as e:
             logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+            self.__broadcast_down()
+        except OSError as e:
+            if e.errno == 113:
+                logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+            else:
+                e = e.__context__
+                while e is not None and not isinstance(e, OSError):
+                    e = e.__context__
+                if e is not None and e.errno == 113:
+                    logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+                else:
+                    logger.exception(f"Unknown OSError when refreshing current state of {self.__ms.address()}")
             self.__broadcast_down()
         except ConnectionRefusedError as e:
             logger.error(f"Unable to connect, MC appears down")

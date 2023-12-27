@@ -53,7 +53,7 @@ def list_to_s8_bytes(numlist):
 def le16_bytes_to_list(bstr):
     """Convert 16bit little-endian bytes to list"""
     i = iter(bstr)
-    return [lb + 256*next(i) for lb in i]
+    return [lb + 256 * next(i) for lb in i]
 
 
 def le16_split(table):
@@ -71,6 +71,7 @@ def list_to_le16_bytes(table):
 
 class Numeric(int):
     """Signed 16 bit values as ascii hex data"""
+
     def __new__(cls, value):
         if isinstance(value, bytes):
             assert len(value) == 4, '{} is not 4 bytes'.format(value)
@@ -91,6 +92,7 @@ class NumericReadOnly(ReadOnly, Numeric):
 
 class CustomGammaTable(BinaryData, list):
     """Custom gamma table data"""
+
     def __init__(self, value):
         if isinstance(value, bytes):
             assert len(value) == 512, '{} is not 512 bytes'.format(value)
@@ -104,6 +106,7 @@ class CustomGammaTable(BinaryData, list):
 
 class PanelAlignment(BinaryData, list):
     """Panel Alignment Data"""
+
     def __init__(self, value):
         if isinstance(value, bytes):
             assert len(value) == 256, '{} is not 256 bytes'.format(value)
@@ -202,13 +205,19 @@ class RemoteCode(WriteOnly, Enum):
     LowLatency_Toggle = b'73F8'
 
 
+READ_ONLY_RC = [RemoteCode.Up, RemoteCode.Down, RemoteCode.Left, RemoteCode.Right, RemoteCode.Menu_MPC, RemoteCode.Menu,
+                RemoteCode.Menu_Gamma, RemoteCode.Menu_Info, RemoteCode.Menu_Advanced, RemoteCode.Menu_Gamma,
+                RemoteCode.Menu_NameEdit, RemoteCode.Menu_PictureMode, RemoteCode.Menu_SettingMemory, RemoteCode.Hide,
+                RemoteCode.Hide_On, RemoteCode.Hide_Off, RemoteCode.OK]
+
+
 class PowerState(NoVerify, Enum):
     """Power state"""
-    Standby = b'0' # send/get
-    LampOn = b'1' # send/get
-    Cooling = b'2' # get
-    Starting = b'3' # get
-    Error = b'4' # get
+    Standby = b'0'  # send/get
+    LampOn = b'1'  # send/get
+    Cooling = b'2'  # get
+    Starting = b'3'  # get
+    Error = b'4'  # get
 
 
 class PictureMode(Enum):
@@ -375,9 +384,9 @@ class GraphicMode(Enum):
 
 class HDMIInputLevel(Enum):
     """HDMI Input Level Setting"""
-    Standard = b'0' # 16-235
-    Enhanced = b'1' # 0-255
-    SuperWhite = b'2' # 16-255
+    Standard = b'0'  # 16-235
+    Enhanced = b'1'  # 0-255
+    SuperWhite = b'2'  # 16-255
     Auto = b'3'
 
 
@@ -536,6 +545,7 @@ class SourceData(ReadOnly, str):
     }
 
     """Input Info Source Information"""
+
     def __new__(cls, value):
         return SourceData.KNOWN_VALUES[value]
 
@@ -548,6 +558,7 @@ class DeepColorData(ReadOnly, str):
     }
 
     """Input Info Deep Color"""
+
     def __new__(cls, value):
         return DeepColorData.KNOWN_VALUES[value]
 
@@ -559,6 +570,7 @@ class ColorSpaceData(ReadOnly, str):
     }
 
     """Input Info Color Space"""
+
     def __new__(cls, value):
         return ColorSpaceData.KNOWN_VALUES[value]
 
@@ -606,183 +618,183 @@ class AutoToneMappingData(ReadOnly, str):
 
 class Command(Enum):
     """Command codes (and return types)"""
-    Null = b'\0\0', Null # NULL command
-    Power = b'PW', PowerState # Power [PoWer]
-    Input = b'IP', InputState # Input [InPut]
-    Remote = b'RC', RemoteCode # Remote control code through [Remote Code]
-    GammaRed = b'GR', CustomGammaTable # Gamma data (Red) of the Gamma table ”Custom 1/2/3”
-    GammaGreen = b'GG', CustomGammaTable # Gamma data (Green) of the Gamma table ”Custom 1/2/3”
-    GammaBlue = b'GB', CustomGammaTable # Gamma data (Blue) of the Gamma table ”Custom 1/2/3”
-    PanelAlignRed = b'PR', PanelAlignment # Red of Panel Alignment (zone)
-    PanelAlignBlue = b'PB', PanelAlignment # Blue of Panel Alignment (zone)
-    SourceAsk = b'SC', SourceAsk # Source asking [SourCe]
-    Model = b'MD', Model   # Model status asking [MoDel]
-    InstallationMode = b'INML', InstallationMode # Installation Mode switch
+    Null = b'\0\0', Null  # NULL command
+    Power = b'PW', PowerState  # Power [PoWer]
+    Input = b'IP', InputState  # Input [InPut]
+    Remote = b'RC', RemoteCode  # Remote control code through [Remote Code]
+    GammaRed = b'GR', CustomGammaTable  # Gamma data (Red) of the Gamma table ”Custom 1/2/3”
+    GammaGreen = b'GG', CustomGammaTable  # Gamma data (Green) of the Gamma table ”Custom 1/2/3”
+    GammaBlue = b'GB', CustomGammaTable  # Gamma data (Blue) of the Gamma table ”Custom 1/2/3”
+    PanelAlignRed = b'PR', PanelAlignment  # Red of Panel Alignment (zone)
+    PanelAlignBlue = b'PB', PanelAlignment  # Blue of Panel Alignment (zone)
+    SourceAsk = b'SC', SourceAsk  # Source asking [SourCe]
+    Model = b'MD', Model  # Model status asking [MoDel]
+    InstallationMode = b'INML', InstallationMode  # Installation Mode switch
 
     # Picture adjustment [adjustment of Picture] : Picture Adjust
-    PictureMode = b'PMPM', PictureMode # Picture Mode switch
-    IntelligentLensAperture = b'PMDI', IntelligentLensAperture # Intelligent Lens Aperture
-    ColorProfile = b'PMPR', ColorProfile # Color Profile switch (*1)
-    ColorTemperatureTable = b'PMCL', ColorTemperature # Color Temperature table
-    ColorTemperatureCorrection = b'PMCC', ColorTemperatureCorrection # Color Temperature Correction
-    ColorTemperatureGainRed = b'PMGR', Numeric # Color Temperature Gain (Red) adjustment
-    ColorTemperatureGainGreen = b'PMGG', Numeric # Color Temperature Gain (Green) adjustment
-    ColorTemperatureGainBlue = b'PMGB', Numeric # Color Temperature Gain (Blue) adjustment
-    ColorTemperatureOffsetRed = b'PMOR', Numeric # Color Temperature Offset (Red) adjustment
-    ColorTemperatureOffsetGreen = b'PMOG', Numeric # Color Temperature Offset (Green) adjustment
-    ColorTemperatureOffsetBlue = b'PMOB', Numeric # Color Temperature Offset (Blue) adjustment
-    GammaTable = b'PMGT', GammaTable # Gamma Table switch
-    PictureToneWhite = b'PMFW', Numeric # Picture Tone (White) adjustment
-    PictureToneRed = b'PMFR', Numeric # Picture Tone (Red) adjustment
-    PictureToneGreen = b'PMFG', Numeric # Picture Tone (Green) adjustment
-    PictureToneBlue = b'PMFB', Numeric # Picture Tone (Blue) adjustment
-    Contrast = b'PMCN', Numeric # Contrast adjustment
-    Brightness = b'PMBR', Numeric # Brightness adjustment
-    Color = b'PMCO', Numeric # Color adjustment
-    Tint = b'PMTI', Numeric # Tint adjustment
-    NoiseReduction = b'PMRN', Numeric # NR adjustment
-    GammaCorrection = b'PMGC', GammaCorrection # Gamma Correction switch
-    PMGammaRed = b'PMDR', CustomGammaTable # Gamma Red data
-    PMGammaGreen = b'PMDG', CustomGammaTable # Gamma Green data
-    PMGammaBlue = b'PMDB', CustomGammaTable # Gamma Blue data
-    BrightLevelWhite = b'PMRW', Numeric # Bright Level White
-    BrightLevelRed = b'PMRR', Numeric # Bright Level Red
-    BrightLevelGreen = b'PMRG', Numeric # Bright Level Green
-    BrightLevelBlue = b'PMRB', Numeric # Bright Level Blue
-    DarkLevelWhite = b'PMKW', Numeric # Dark Level White
-    DarkLevelRed = b'PMKR', Numeric # Dark Level Red
-    DarkLevelGreen = b'PMKG', Numeric # Dark Level Green
-    DarkLevelBlue = b'PMKB', Numeric # Dark Level Blue
-    ColorManagementTable = b'PMCB', ColorManagement # Color Management table
-    AxisPositionRed = b'PMAR', Numeric # Axis Position (Red) adjustment
-    AxisPositionYellow = b'PMAY', Numeric # Axis Position (Yellow) adjustment
-    AxisPositionGreen = b'PMAG', Numeric # Axis Position (Green) adjustment
-    AxisPositionCyan = b'PMAC', Numeric # Axis Position (Cyan) adjustment
-    AxisPositionBlue = b'PMAB', Numeric # Axis Position (Blue) adjustment
-    AxisPositionMagenta = b'PMAM', Numeric # Axis Position (Magenta) adjustment
-    HUERed = b'PMHR', Numeric # HUE (Red) adjustment
-    HUEYellow = b'PMHY', Numeric # HUE (Yellow) adjustment
-    HUEGreen = b'PMHG', Numeric # HUE (Green) adjustment
-    HUECyan = b'PMHC', Numeric # HUE (Cyan) adjustment
-    HUEBlue = b'PMHB', Numeric # HUE (Blue) adjustment
-    HUEMagenta = b'PMHM', Numeric # HUE (Magenta) adjustment
-    SaturationRed = b'PMSR', Numeric # Saturation (Red) adjustment
-    SaturationYellow = b'PMSY', Numeric # Saturation (Yellow) adjustment
-    SaturationGreen = b'PMSG', Numeric # Saturation (Green) adjustment
-    SaturationCyan = b'PMSC', Numeric # Saturation (Cyan) adjustment
-    SaturationBlue = b'PMSB', Numeric # Saturation (Blue) adjustment
-    SaturationMagenta = b'PMSM', Numeric # Saturation (Magenta) adjustment
-    BrightnessRed = b'PMLR', Numeric # Brightness (Red) adjustment
-    BrightnessYellow = b'PMLY', Numeric # Brightness (Yellow) adjustment
-    BrightnessGreen = b'PMLG', Numeric # Brightness (Green) adjustment
-    BrightnessCyan = b'PMLC', Numeric # Brightness (Cyan) adjustment
-    BrightnessBlue = b'PMLB', Numeric # Brightness (Blue) adjustment
-    BrightnessMagenta = b'PMLM', Numeric # Brightness (Magenta) adjustment
-    LowLatency = b'PMLL', LowLatency # Low Latency mode
-    ClearMotionDrive = b'PMCM', ClearMotionDrive # Clear Motion Drive
-    MotionEnhance = b'PMME', MotionEnhance # Motion Enhance
-    LensAperture = b'PMLA', Numeric # Lens Aperture
-    LampPower = b'PMLP', LampPower # Lamp Power
-    EShift8K = b'PMUS', EShift8K # 4K e-shift
+    PictureMode = b'PMPM', PictureMode  # Picture Mode switch
+    IntelligentLensAperture = b'PMDI', IntelligentLensAperture  # Intelligent Lens Aperture
+    ColorProfile = b'PMPR', ColorProfile  # Color Profile switch (*1)
+    ColorTemperatureTable = b'PMCL', ColorTemperature  # Color Temperature table
+    ColorTemperatureCorrection = b'PMCC', ColorTemperatureCorrection  # Color Temperature Correction
+    ColorTemperatureGainRed = b'PMGR', Numeric  # Color Temperature Gain (Red) adjustment
+    ColorTemperatureGainGreen = b'PMGG', Numeric  # Color Temperature Gain (Green) adjustment
+    ColorTemperatureGainBlue = b'PMGB', Numeric  # Color Temperature Gain (Blue) adjustment
+    ColorTemperatureOffsetRed = b'PMOR', Numeric  # Color Temperature Offset (Red) adjustment
+    ColorTemperatureOffsetGreen = b'PMOG', Numeric  # Color Temperature Offset (Green) adjustment
+    ColorTemperatureOffsetBlue = b'PMOB', Numeric  # Color Temperature Offset (Blue) adjustment
+    GammaTable = b'PMGT', GammaTable  # Gamma Table switch
+    PictureToneWhite = b'PMFW', Numeric  # Picture Tone (White) adjustment
+    PictureToneRed = b'PMFR', Numeric  # Picture Tone (Red) adjustment
+    PictureToneGreen = b'PMFG', Numeric  # Picture Tone (Green) adjustment
+    PictureToneBlue = b'PMFB', Numeric  # Picture Tone (Blue) adjustment
+    Contrast = b'PMCN', Numeric  # Contrast adjustment
+    Brightness = b'PMBR', Numeric  # Brightness adjustment
+    Color = b'PMCO', Numeric  # Color adjustment
+    Tint = b'PMTI', Numeric  # Tint adjustment
+    NoiseReduction = b'PMRN', Numeric  # NR adjustment
+    GammaCorrection = b'PMGC', GammaCorrection  # Gamma Correction switch
+    PMGammaRed = b'PMDR', CustomGammaTable  # Gamma Red data
+    PMGammaGreen = b'PMDG', CustomGammaTable  # Gamma Green data
+    PMGammaBlue = b'PMDB', CustomGammaTable  # Gamma Blue data
+    BrightLevelWhite = b'PMRW', Numeric  # Bright Level White
+    BrightLevelRed = b'PMRR', Numeric  # Bright Level Red
+    BrightLevelGreen = b'PMRG', Numeric  # Bright Level Green
+    BrightLevelBlue = b'PMRB', Numeric  # Bright Level Blue
+    DarkLevelWhite = b'PMKW', Numeric  # Dark Level White
+    DarkLevelRed = b'PMKR', Numeric  # Dark Level Red
+    DarkLevelGreen = b'PMKG', Numeric  # Dark Level Green
+    DarkLevelBlue = b'PMKB', Numeric  # Dark Level Blue
+    ColorManagementTable = b'PMCB', ColorManagement  # Color Management table
+    AxisPositionRed = b'PMAR', Numeric  # Axis Position (Red) adjustment
+    AxisPositionYellow = b'PMAY', Numeric  # Axis Position (Yellow) adjustment
+    AxisPositionGreen = b'PMAG', Numeric  # Axis Position (Green) adjustment
+    AxisPositionCyan = b'PMAC', Numeric  # Axis Position (Cyan) adjustment
+    AxisPositionBlue = b'PMAB', Numeric  # Axis Position (Blue) adjustment
+    AxisPositionMagenta = b'PMAM', Numeric  # Axis Position (Magenta) adjustment
+    HUERed = b'PMHR', Numeric  # HUE (Red) adjustment
+    HUEYellow = b'PMHY', Numeric  # HUE (Yellow) adjustment
+    HUEGreen = b'PMHG', Numeric  # HUE (Green) adjustment
+    HUECyan = b'PMHC', Numeric  # HUE (Cyan) adjustment
+    HUEBlue = b'PMHB', Numeric  # HUE (Blue) adjustment
+    HUEMagenta = b'PMHM', Numeric  # HUE (Magenta) adjustment
+    SaturationRed = b'PMSR', Numeric  # Saturation (Red) adjustment
+    SaturationYellow = b'PMSY', Numeric  # Saturation (Yellow) adjustment
+    SaturationGreen = b'PMSG', Numeric  # Saturation (Green) adjustment
+    SaturationCyan = b'PMSC', Numeric  # Saturation (Cyan) adjustment
+    SaturationBlue = b'PMSB', Numeric  # Saturation (Blue) adjustment
+    SaturationMagenta = b'PMSM', Numeric  # Saturation (Magenta) adjustment
+    BrightnessRed = b'PMLR', Numeric  # Brightness (Red) adjustment
+    BrightnessYellow = b'PMLY', Numeric  # Brightness (Yellow) adjustment
+    BrightnessGreen = b'PMLG', Numeric  # Brightness (Green) adjustment
+    BrightnessCyan = b'PMLC', Numeric  # Brightness (Cyan) adjustment
+    BrightnessBlue = b'PMLB', Numeric  # Brightness (Blue) adjustment
+    BrightnessMagenta = b'PMLM', Numeric  # Brightness (Magenta) adjustment
+    LowLatency = b'PMLL', LowLatency  # Low Latency mode
+    ClearMotionDrive = b'PMCM', ClearMotionDrive  # Clear Motion Drive
+    MotionEnhance = b'PMME', MotionEnhance  # Motion Enhance
+    LensAperture = b'PMLA', Numeric  # Lens Aperture
+    LampPower = b'PMLP', LampPower  # Lamp Power
+    EShift8K = b'PMUS', EShift8K  # 4K e-shift
     GraphicMode = b'PMGM', GraphicMode
-    Enhance = b'PMEN', Numeric # Enhance
-    Smoothing = b'PMST', Numeric # Smoothing
-    NameEditofPictureModeUser1 = b'PMU1' # Name Edit of Picture Mode User1
-    NameEditofPictureModeUser2 = b'PMU2' # Name Edit of Picture Mode User2
-    NameEditofPictureModeUser3 = b'PMU3' # Name Edit of Picture Mode User3
-    NameEditofPictureModeUser4 = b'PMU4' # Name Edit of Picture Mode User4
-    NameEditofPictureModeUser5 = b'PMU5' # Name Edit of Picture Mode User5
-    NameEditofPictureModeUser6 = b'PMU6' # Name Edit of Picture Mode User6
+    Enhance = b'PMEN', Numeric  # Enhance
+    Smoothing = b'PMST', Numeric  # Smoothing
+    NameEditofPictureModeUser1 = b'PMU1'  # Name Edit of Picture Mode User1
+    NameEditofPictureModeUser2 = b'PMU2'  # Name Edit of Picture Mode User2
+    NameEditofPictureModeUser3 = b'PMU3'  # Name Edit of Picture Mode User3
+    NameEditofPictureModeUser4 = b'PMU4'  # Name Edit of Picture Mode User4
+    NameEditofPictureModeUser5 = b'PMU5'  # Name Edit of Picture Mode User5
+    NameEditofPictureModeUser6 = b'PMU6'  # Name Edit of Picture Mode User6
 
     # Picture adjustment [adjustment of Picture] : Input Signal
-    HDMIInputLevel = b'ISIL', HDMIInputLevel # HDMI Input Level switch
-    HDMIColorSpace = b'ISHS', HDMIColorSpace # HDMI Color Space switch
-    HDMI2D3D = b'IS3D' # HDMI 2D/3D switch
-    HDMI3DPhase = b'IS3P' # HDMI 3D Phase adjustment
-    PicturePositionHorizontal = b'ISPH', Numeric # Picture Position (Horizontal) adjustment
-    PicturePositionVertical = b'ISPV', Numeric # Picture Position (Vertical) adjustment
-    Aspect = b'ISAS' # Aspect switch
-    Mask = b'ISMA' # Mask switch
-    MaskLeft = b'ISML', Numeric # Mask (Left) adjustment
-    MaskRight = b'ISMR', Numeric # Mask (Right) adjustment
-    MaskTop = b'ISMT', Numeric # Mask (Top) adjustment
-    MaskBottom = b'ISMB', Numeric # Mask (Bottom) adjustment
-    Parallaxof3Dconversion = b'ISLV', Numeric # Parallax of 3D conversion adjustment
-    CrosstalkCancelWhite = b'ISCA', Numeric # Crosstalk Cancel (White) adjustment
+    HDMIInputLevel = b'ISIL', HDMIInputLevel  # HDMI Input Level switch
+    HDMIColorSpace = b'ISHS', HDMIColorSpace  # HDMI Color Space switch
+    HDMI2D3D = b'IS3D'  # HDMI 2D/3D switch
+    HDMI3DPhase = b'IS3P'  # HDMI 3D Phase adjustment
+    PicturePositionHorizontal = b'ISPH', Numeric  # Picture Position (Horizontal) adjustment
+    PicturePositionVertical = b'ISPV', Numeric  # Picture Position (Vertical) adjustment
+    Aspect = b'ISAS'  # Aspect switch
+    Mask = b'ISMA'  # Mask switch
+    MaskLeft = b'ISML', Numeric  # Mask (Left) adjustment
+    MaskRight = b'ISMR', Numeric  # Mask (Right) adjustment
+    MaskTop = b'ISMT', Numeric  # Mask (Top) adjustment
+    MaskBottom = b'ISMB', Numeric  # Mask (Bottom) adjustment
+    Parallaxof3Dconversion = b'ISLV', Numeric  # Parallax of 3D conversion adjustment
+    CrosstalkCancelWhite = b'ISCA', Numeric  # Crosstalk Cancel (White) adjustment
 
     # Picture adjustment [adjustment of Picture] : Installation
-    FocusNear = b'INFN' # Focus Near adjustment (*3)
-    FocusFar = b'INFF' # Focus Far adjustment (*3)
-    ZoomTele = b'INZT' # Zoom Tele adjustment (*3)
-    ZoomWide = b'INZW' # Zoom Wide adjustment (*3)
-    ShiftLeft = b'INSL' # Shift Left adjustment (*3)
-    ShiftRight = b'INSR' # Shift Right adjustment (*3)
-    ShiftUp = b'INSU' # Shift Up adjustment (*3)
-    ShiftDown = b'INSD' # Shift Down adjustment (*3)
-    ImagePattern = b'INIP' # Image Pattern switch
-    LensLock = b'INLL' # Lens Lock switch
-    PixelAdjustHorizontalRed = b'INXR', Numeric # Pixel Adjust (Horizontal Red) adjustment
-    PixelAdjustHorizontalBlue = b'INXB', Numeric # Pixel Adjust (Horizontal Blue) adjustment
-    PixelAdjustVerticalRed = b'INYR', Numeric # Pixel Adjust (Vertical Red) adjustment
-    PixelAdjustVerticalBlue = b'INYB', Numeric # Pixel Adjust (Vertical Blue) adjustment
-    InstallationStyle = b'INIS' # Installation Style switch
-    KeystoneVertical = b'INKV', Numeric # Keystone (Vertical) adjustment
-    Anamorphic = b'INVS', Anamorphic # Anamorphic switch
-    ScreenAdjustData = b'INSA', Numeric # Screen Adjust Data
-    ScreenAdjust = b'INSC' # Screen Adjust switch
-    PanelAlignment = b'INPA' # Panel Alignment switch
-    LoadLensmemory = b'INML' # Load Lens memory
-    NameEditofLensMemory1 = b'INM1' # Name Edit of Lens Memory 1
-    NameEditofLensMemory2 = b'INM2' # Name Edit of Lens Memory 2
-    NameEditofLensMemory3 = b'INM3' # Name Edit of Lens Memory 3
-    NameEditofLensMemory4 = b'INM4' # Name Edit of Lens Memory 4
-    NameEditofLensMemory5 = b'INM5' # Name Edit of Lens Memory 5
-    NameEditofLensMemory6 = b'INM6' # Name Edit of Lens Memory 6
-    NameEditofLensMemory7 = b'INM7' # Name Edit of Lens Memory 7
-    NameEditofLensMemory8 = b'INM8' # Name Edit of Lens Memory 8
-    NameEditofLensMemory9 = b'INM9' # Name Edit of Lens Memory 9
-    NameEditofLensMemory10 = b'INMA' # Name Edit of Lens Memory 10
-    FocusNear1Shot = b'IN1N' # Focus Near adjustment (1 shot)(*3)
-    FocusFar1Shot = b'IN1F' # Focus Far adjustment (1 shot) (*3)
-    ZoomTele1Shot = b'IN1T' # Zoom Tele adjustment (1 shot) (*3)
-    ZoomWide1Shot = b'IN1W' # Zoom Wide adjustment (1 shot) (*3)
-    ShiftLeft1Shot = b'IN1L' # Shift Left adjustment (1 shot) (*3)
-    ShiftRight1Shot = b'IN1R' # Shift Right adjustment (1 shot) (*3)
-    ShiftUp1Shot = b'IN1U' # Shift Up adjustment (1 shot) (*3)
-    ShiftDown1Shot = b'IN1D' # Shift Down adjustment (1 shot) (*3)
-    HighAltitudeMode = b'INHA' # High Altitude mode switch
+    FocusNear = b'INFN'  # Focus Near adjustment (*3)
+    FocusFar = b'INFF'  # Focus Far adjustment (*3)
+    ZoomTele = b'INZT'  # Zoom Tele adjustment (*3)
+    ZoomWide = b'INZW'  # Zoom Wide adjustment (*3)
+    ShiftLeft = b'INSL'  # Shift Left adjustment (*3)
+    ShiftRight = b'INSR'  # Shift Right adjustment (*3)
+    ShiftUp = b'INSU'  # Shift Up adjustment (*3)
+    ShiftDown = b'INSD'  # Shift Down adjustment (*3)
+    ImagePattern = b'INIP'  # Image Pattern switch
+    LensLock = b'INLL'  # Lens Lock switch
+    PixelAdjustHorizontalRed = b'INXR', Numeric  # Pixel Adjust (Horizontal Red) adjustment
+    PixelAdjustHorizontalBlue = b'INXB', Numeric  # Pixel Adjust (Horizontal Blue) adjustment
+    PixelAdjustVerticalRed = b'INYR', Numeric  # Pixel Adjust (Vertical Red) adjustment
+    PixelAdjustVerticalBlue = b'INYB', Numeric  # Pixel Adjust (Vertical Blue) adjustment
+    InstallationStyle = b'INIS'  # Installation Style switch
+    KeystoneVertical = b'INKV', Numeric  # Keystone (Vertical) adjustment
+    Anamorphic = b'INVS', Anamorphic  # Anamorphic switch
+    ScreenAdjustData = b'INSA', Numeric  # Screen Adjust Data
+    ScreenAdjust = b'INSC'  # Screen Adjust switch
+    PanelAlignment = b'INPA'  # Panel Alignment switch
+    LoadLensmemory = b'INML'  # Load Lens memory
+    NameEditofLensMemory1 = b'INM1'  # Name Edit of Lens Memory 1
+    NameEditofLensMemory2 = b'INM2'  # Name Edit of Lens Memory 2
+    NameEditofLensMemory3 = b'INM3'  # Name Edit of Lens Memory 3
+    NameEditofLensMemory4 = b'INM4'  # Name Edit of Lens Memory 4
+    NameEditofLensMemory5 = b'INM5'  # Name Edit of Lens Memory 5
+    NameEditofLensMemory6 = b'INM6'  # Name Edit of Lens Memory 6
+    NameEditofLensMemory7 = b'INM7'  # Name Edit of Lens Memory 7
+    NameEditofLensMemory8 = b'INM8'  # Name Edit of Lens Memory 8
+    NameEditofLensMemory9 = b'INM9'  # Name Edit of Lens Memory 9
+    NameEditofLensMemory10 = b'INMA'  # Name Edit of Lens Memory 10
+    FocusNear1Shot = b'IN1N'  # Focus Near adjustment (1 shot)(*3)
+    FocusFar1Shot = b'IN1F'  # Focus Far adjustment (1 shot) (*3)
+    ZoomTele1Shot = b'IN1T'  # Zoom Tele adjustment (1 shot) (*3)
+    ZoomWide1Shot = b'IN1W'  # Zoom Wide adjustment (1 shot) (*3)
+    ShiftLeft1Shot = b'IN1L'  # Shift Left adjustment (1 shot) (*3)
+    ShiftRight1Shot = b'IN1R'  # Shift Right adjustment (1 shot) (*3)
+    ShiftUp1Shot = b'IN1U'  # Shift Up adjustment (1 shot) (*3)
+    ShiftDown1Shot = b'IN1D'  # Shift Down adjustment (1 shot) (*3)
+    HighAltitudeMode = b'INHA'  # High Altitude mode switch
 
     # Picture adjustment [adjustment of Picture] : Display Setup
-    BackColor = b'DSBC', BackColour # Back Color switch
-    MenuPosition = b'DSMP', MenuPosition # Menu Position switch
-    SourceDisplay = b'DSSD', SourceDisplay # Source Display switch
-    Logo = b'DSLO' # Logo switch
-    Language = b'DSLA' # Language switch
+    BackColor = b'DSBC', BackColour  # Back Color switch
+    MenuPosition = b'DSMP', MenuPosition  # Menu Position switch
+    SourceDisplay = b'DSSD', SourceDisplay  # Source Display switch
+    Logo = b'DSLO'  # Logo switch
+    Language = b'DSLA'  # Language switch
 
     # Picture adjustment [adjustment of Picture] : Function
-    Trigger = b'FUTR' # Trigger switch
-    OffTimer = b'FUOT' # Off Timer switch
-    EcoMode = b'FUEM' # Eco Mode switch
-    Control4 = b'FUCF' # Control4
+    Trigger = b'FUTR'  # Trigger switch
+    OffTimer = b'FUOT'  # Off Timer switch
+    EcoMode = b'FUEM'  # Eco Mode switch
+    Control4 = b'FUCF'  # Control4
 
     # Picture adjustment [adjustment of Picture] : Information
-    InfoInput = b'IFIN', InputState # Input display
-    InfoSource = b'IFIS', SourceData # Source display
-    InfoHorizontalResolution = b'IFRH', NumericReadOnly # Horizontal Resolution display
-    InfoVerticalResolution = b'IFRV', NumericReadOnly # Vertical Resolution display
-    InfoHorizontalFrequency = b'IFFH', NumericReadOnly # Horizontal Frequency display (*4)
-    InfoVerticalFrequency = b'IFFV', NumericReadOnly # Vertical Frequency display (*4)
-    InfoDeepColor = b'IFDC', DeepColorData # Deep Color display
-    InfoColorSpace = b'IFXV', ColorSpaceData # Color space display
-    InfoLampTime = b'IFLT', NumericReadOnly # Lamp Time display
-    InfoSoftVersion = b'IFSV' # Soft Version Display
-    InfoColorimetry = b'IFCM', ColorimetryData # Colorimetry Display
+    InfoInput = b'IFIN', InputState  # Input display
+    InfoSource = b'IFIS', SourceData  # Source display
+    InfoHorizontalResolution = b'IFRH', NumericReadOnly  # Horizontal Resolution display
+    InfoVerticalResolution = b'IFRV', NumericReadOnly  # Vertical Resolution display
+    InfoHorizontalFrequency = b'IFFH', NumericReadOnly  # Horizontal Frequency display (*4)
+    InfoVerticalFrequency = b'IFFV', NumericReadOnly  # Vertical Frequency display (*4)
+    InfoDeepColor = b'IFDC', DeepColorData  # Deep Color display
+    InfoColorSpace = b'IFXV', ColorSpaceData  # Color space display
+    InfoLampTime = b'IFLT', NumericReadOnly  # Lamp Time display
+    InfoSoftVersion = b'IFSV'  # Soft Version Display
+    InfoColorimetry = b'IFCM', ColorimetryData  # Colorimetry Display
     InfoHDR = b'IFHR', HDRData
     InfoMaxCLL = b'IFMC', Numeric
     InfoMaxFALL = b'IFMF', Numeric
     PMAutoToneMapping = b'PMTM', AutoToneMappingData
     PMMappingLevel = b'PMTL', Numeric
-    LanSetup = b'LS'   # LAN setup [Lan Setup]
+    LanSetup = b'LS'  # LAN setup [Lan Setup]
 
 
 def get_all_command_info():

@@ -70,11 +70,9 @@ class WsServerFactory(WebSocketServerFactory):
             logger.info(f"Ignoring unregistered client {client.peer}")
     
     def broadcast(self, msg: str):
-        logger.debug(f"Broadcasting {msg}")
         if self.__clients:
             disconnected_clients = []
             for c in self.__clients:
-                logger.debug(f"Sending to {c.peer}")
                 try:
                     c.sendMessage(msg.encode('utf8'), isBinary=False)
                 except Disconnected as e:
@@ -82,5 +80,3 @@ class WsServerFactory(WebSocketServerFactory):
                     disconnected_clients.append(c)
             for c in disconnected_clients:
                 self.unregister(c)
-        else:
-            logger.debug(f"No devices connected, ignoring {msg}")

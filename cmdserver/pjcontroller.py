@@ -1,14 +1,15 @@
 import json
 import logging
+import time
 from enum import Enum
 from threading import Lock
 from time import sleep
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PictureMode, Anamorphic, PowerState, \
-    InstallationMode
+    InstallationMode, READ_ONLY_RC
 from cmdserver.mqtt import MQTT
 
 logger = logging.getLogger('pjcontroller')
@@ -31,13 +32,17 @@ class PJController:
             'hdr': '',
             'anamorphic': ''
         }
-        if mqtt:
-            from twisted.internet import reactor
-            reactor.callLater(0.5, self.__update_state)
+        self.__looping = None
+        if self.__mqtt:
+            from twisted.internet import task
+            self.__looping = task.LoopingCall(self.__update_state)
+            logger.info(f'Initiating PJ refresh every 20s')
+            self.__looping.start(20, now=False)
 
     def __update_state(self):
-        updated = False
+        update_in = 0.5
         with self.__lock:
+            logger.info('Refreshing PJ State')
             cmd = Command.Power
             try:
                 self.__connect()
@@ -61,18 +66,29 @@ class PJController:
                     self.__mqtt.online('pj')
                     self.__mqtt.publish('pj/state', power.name)
                     self.__mqtt.publish('pj/attributes', json.dumps(self.__state))
+                    update_in = 10
                 else:
                     self.__state = {**self.__state, 'powerState': power.name}
                     self.__mqtt.offline('pj')
-                updated = True
+                    update_in = 1 if power == PowerState.Starting or power == PowerState.Cooling else 20
+                self.__update_state_in(update_in=update_in)
                 self.__disconnect()
+                logger.info('Refreshed PJ State')
             except CommandNack:
+                self.__update_state_in(update_in=update_in)
+                self.__disconnect()
                 logger.exception(f"Command NACKed - GET {cmd}")
             except:
+                self.__update_state_in(update_in=update_in)
+                self.__disconnect()
                 logger.exception(f"Unexpected failure while executing cmd: {cmd}")
-                return -1
-        from twisted.internet import reactor
-        reactor.callLater(0.5 if not updated else 30, self.__update_state)
+
+    def __update_state_in(self, update_in: float = 20, reason: str = None):
+        suffix = f' due to {reason}' if reason else ''
+        if self.__looping.interval != update_in:
+            logger.info(f'Changing PJ refresh rate from {self.__looping.interval} to {update_in}s{suffix}')
+            self.__looping.stop()
+            self.__looping.start(update_in, now=False)
 
     @property
     def state(self):
@@ -112,6 +128,7 @@ class PJController:
     def send(self, commands):
         """ Sends the commands to the PJ """
         with self.__lock:
+            sent = []
             vals = []
             self.__connect()
             for command in commands:
@@ -122,13 +139,38 @@ class PJController:
                 else:
                     if command in self.__pj_macros:
                         for cmd in self.__pj_macros[command]:
-                            vals.append(self.__execute(cmd))
+                            c, e, v = self.__execute(cmd)
+                        if c and e:
+                            sent.append((c, e))
+                        if v:
+                            vals.append(v)
                     else:
-                        vals.append(self.__execute(command))
+                        c, e, v = self.__execute(command)
+                        if c and e:
+                            sent.append((c, e))
+                        if v:
+                            vals.append(v)
             self.__disconnect()
+            if self.__mqtt:
+                self.__update_state_if_necessary(sent)
             return vals
 
-    def __execute(self, cmd):
+    def __update_state_if_necessary(self, sent):
+        mutate_cmd = None
+        for c, e in sent:
+            if c != Command.Remote:
+                mutate_cmd = f'{c} - {e}'
+                break
+            else:
+                if e not in READ_ONLY_RC:
+                    mutate_cmd = f'{c} - {e}'
+                    break
+        if mutate_cmd:
+            self.__update_state_in(update_in=1, reason=f'{mutate_cmd}')
+        else:
+            logger.info(f'Info only, PJ state will not be updated')
+
+    def __execute(self, cmd) -> Tuple[Optional[Command], Optional[Union[Enum, Numeric]], any]:
         tokens = cmd.split('.')
         if len(tokens) > 1:
             try:
@@ -138,9 +180,11 @@ class PJController:
                     if cmd_arg_enum.__name__ == tokens[1]:
                         logger.info(f"Executing {cmd}")
                         if issubclass(cmd_arg_enum, Enum):
-                            return self.__executor.set(cmd_enum, cmd_arg_enum[tokens[2]])
+                            tok = cmd_arg_enum[tokens[2]]
+                            return cmd_enum, tok, self.__executor.set(cmd_enum, tok)
                         elif issubclass(cmd_arg_enum, Numeric):
-                            return self.__executor.set(cmd_enum, Numeric(int(tokens[2])))
+                            tok = Numeric(int(tokens[2]))
+                            return cmd_enum, tok, self.__executor.set(cmd_enum, tok)
                         else:
                             logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
             except (AttributeError, KeyError):
@@ -149,3 +193,4 @@ class PJController:
                 logger.exception(f"Unexpected exception while processing {cmd}")
         else:
             logger.error(f"Ignoring unknown command {cmd}")
+        return None, None, None
