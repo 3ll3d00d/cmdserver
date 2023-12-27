@@ -46,6 +46,7 @@ class PJController:
             cmd = Command.Power
             try:
                 self.__connect()
+                self.__mqtt.online('pj')
                 power = self.__executor.get(cmd)
                 if power == PowerState.LampOn:
                     cmd = Command.Anamorphic
@@ -63,14 +64,12 @@ class PJController:
                         'hdr': pic == PictureMode.User5,
                         'anamorphic': 'A' if ana == Anamorphic.A else 'B' if install == InstallationMode.TWO else None
                     }
-                    self.__mqtt.online('pj')
-                    self.__mqtt.publish('pj/state', power.name)
-                    self.__mqtt.publish('pj/attributes', json.dumps(self.__state))
                     update_in = 10
                 else:
                     self.__state = {**self.__state, 'powerState': power.name}
-                    self.__mqtt.offline('pj')
                     update_in = 1 if power == PowerState.Starting or power == PowerState.Cooling else 20
+                self.__mqtt.publish('pj/state', power.name)
+                self.__mqtt.publish('pj/attributes', json.dumps(self.__state))
                 self.__update_state_in(update_in=update_in)
                 self.__disconnect()
                 logger.info('Refreshed PJ State')
@@ -79,6 +78,7 @@ class PJController:
                 self.__disconnect()
                 logger.exception(f"Command NACKed - GET {cmd}")
             except:
+                self.__mqtt.offline('pj')
                 self.__update_state_in(update_in=update_in)
                 self.__disconnect()
                 logger.exception(f"Unexpected failure while executing cmd: {cmd}")
