@@ -23,14 +23,10 @@ class PJController:
         self.__executor = CommandExecutor(host=config.pj_ip) if config.pj_ip else None
         self.__commands = load_all_commands()
         self.__lock = Lock()
-        self.__state = {
-            'powerState': '',
+        self.__attributes = {
             'anamorphicMode': '',
             'installationMode': '',
-            'pictureMode': '',
-            'power': False,
-            'hdr': '',
-            'anamorphic': ''
+            'pictureMode': ''
         }
         self.__looping = None
         if self.__mqtt:
@@ -55,21 +51,16 @@ class PJController:
                     pic = self.__executor.get(cmd)
                     cmd = Command.InstallationMode
                     install = self.__executor.get(cmd)
-                    self.__state = {
-                        'powerState': power.name,
+                    self.__attributes = {
                         'anamorphicMode': ana.name,
                         'installationMode': install.name,
-                        'pictureMode': pic.name,
-                        'power': power == PowerState.LampOn,
-                        'hdr': pic == PictureMode.User5,
-                        'anamorphic': 'A' if ana == Anamorphic.A else 'B' if install == InstallationMode.TWO else None
+                        'pictureMode': pic.name
                     }
                     update_in = 10
                 else:
-                    self.__state = {**self.__state, 'powerState': power.name}
                     update_in = 1 if power == PowerState.Starting or power == PowerState.Cooling else 20
                 self.__mqtt.publish('pj/state', power.name)
-                self.__mqtt.publish('pj/attributes', json.dumps(self.__state))
+                self.__mqtt.publish('pj/attributes', json.dumps(self.__attributes))
                 self.__update_state_in(update_in=update_in)
                 self.__disconnect()
                 logger.info('Refreshed PJ State')
@@ -92,7 +83,7 @@ class PJController:
 
     @property
     def state(self):
-        return self.__state
+        return self.__attributes
 
     @property
     def enabled(self):
