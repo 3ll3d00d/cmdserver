@@ -70,13 +70,18 @@ class WsServerFactory(WebSocketServerFactory):
             logger.info(f"Ignoring unregistered client {client.peer}")
     
     def broadcast(self, msg: str):
+        sent_to = False
         if self.__clients:
             disconnected_clients = []
             for c in self.__clients:
                 try:
                     c.sendMessage(msg.encode('utf8'), isBinary=False)
+                    sent_to = True
                 except Disconnected as e:
                     logger.exception(f"Failed to send to {c.peer}, discarding")
                     disconnected_clients.append(c)
             for c in disconnected_clients:
                 self.unregister(c)
+        if sent_to:
+            logger.debug(f"Broadcast {msg}")
+

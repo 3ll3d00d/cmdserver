@@ -12,6 +12,7 @@ from twisted.internet.defer import Deferred
 
 from cmdserver.config import Config
 from cmdserver.ws import WsServer
+from mqtt import MQTT
 
 DEFAULT_ACTIVE_COMMAND = 'Music'
 
@@ -21,8 +22,9 @@ logger = logging.getLogger('infoprovider')
 class InfoProvider:
     VOLUME_PATTERN = re.compile(r'.*\(([-+][0-9]+\.[0-9]) dB\)')
 
-    def __init__(self, config: Config, ws_server: WsServer):
+    def __init__(self, config: Config, ws_server: WsServer, mqtt: Optional[MQTT]):
         self.__ws_server = ws_server
+        self.__mqtt = mqtt
         self.__interval = float(config.mcws.get('interval', 0.25))
         self.__launcher = local[config.playingNowExe] if config.playingNowExe else None
         self.__default_playing_now_id = None
@@ -36,6 +38,7 @@ class InfoProvider:
         self.__ms: MediaServer = MediaServer('localhost', config.mcws.get('user', None), config.mcws.get('pass', None))
         # make sure all calls in pymcws have a timeout not just connection checks
         self.__ms.session.request = functools.partial(self.__ms.session.request, timeout=2.5)
+        self.__mqtt_name: str = f"mc/{config.mcws.get('name', 'mediacentre')}"
         self.__ms_mac: str = config.mcws.get('mac', '')
         self.__ms.port = int(config.mcws.get('port', 52199))
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
@@ -54,6 +57,8 @@ class InfoProvider:
         self.__ws_server.factory.init(self.__state_to_str)
         self.__refresh_task = task.LoopingCall(self.refresh)
         self.__deferred = self.__refresh_task.start(self.__interval)
+        if self.__mqtt:
+            self.__mqtt.offline(self.__mqtt_name)
 
     def __state_to_str(self) -> str:
         return json.dumps(self.__current_state, ensure_ascii=False)
@@ -75,7 +80,7 @@ class InfoProvider:
         return threads.deferToThread(self.__async_refresh)
 
     def __async_refresh(self):
-        logger.info(f'Refreshing MC state from {self.__ms.local_ip}')
+        logger.debug(f'Refreshing MC state from {self.__ms.local_ip}')
         try:
             zones, active_zone = get_zones(self.__ms)
             playback_info = get_playback_info(self.__ms, active_zone)
@@ -86,6 +91,7 @@ class InfoProvider:
                 else:
                     zd = self.__zone_to_dict(z, None)
                 zones_data[z.id] = zd
+            playing = self.__current_state.get('playingCommand', {})
             self.__current_state = {
                 'config': {
                     'host': self.__ms.local_ip,
@@ -94,11 +100,17 @@ class InfoProvider:
                     'ssl': False,
                     'alive': True
                 },
-                'zones': zones_data
+                'zones': zones_data,
+                'playingCommand': playing
             }
-            active_command = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
-            self.__current_state['playingCommand'] = {'active': active_command}
+            last_active_zone_id = playing.get('id', '')
+            playing['active'] = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
+            if active_zone.id:
+                playing['id'] = active_zone.id
             self.__ws_server.broadcast(self.__state_to_str())
+            self.__broadcast_up()
+            if active_zone.id != last_active_zone_id:
+                self.__mqtt.publish(self.__mqtt_name, json.dumps({'zone': active_zone.id}))
         except ConnectTimeout as e:
             logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
             self.__broadcast_down()
@@ -121,10 +133,17 @@ class InfoProvider:
             logger.exception(f"Unexpected failure to refresh current state of {self.__ms.address()}")
             self.__broadcast_down()
 
+    def __broadcast_up(self):
+        was_alive = not self.__current_state or self.__current_state.get('config', {}).get('alive', True) is True
+        if not was_alive:
+            logger.warning(f"Broadcasting MC is UP")
+            if self.__mqtt:
+                self.__mqtt.online(self.__mqtt_name)
+
     def __broadcast_down(self):
         was_alive = not self.__current_state or self.__current_state.get('config', {}).get('alive', True) is True
         if was_alive:
-            logger.warning(f"Broadcasting MC is down")
+            logger.warning(f"Broadcasting MC is DOWN")
         self.__current_state = {
             'config': {
                 'host': self.__ms.local_ip,
@@ -137,6 +156,8 @@ class InfoProvider:
             'playingCommand': {'active': DEFAULT_ACTIVE_COMMAND}
         }
         self.__ws_server.broadcast(self.__state_to_str())
+        if self.__mqtt:
+            self.__mqtt.offline(self.__mqtt_name)
 
     def wake(self) -> bool:
         if self.__ms_mac:

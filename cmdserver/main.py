@@ -27,10 +27,10 @@ if hasattr(faulthandler, 'register'):
 
 def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
     ws_server = WsServer()
-    info_provider = InfoProvider(cfg, ws_server)
     mqtt = None
     if cfg.mqtt:
         mqtt = MQTT(cfg.mqtt['ip'], cfg.mqtt.get('port', 1883), cfg.mqtt.get('user', None), cfg.mqtt.get('cred', None))
+    info_provider = InfoProvider(cfg, ws_server, mqtt)
     resource_args = {
         'command_controller': CommandController(cfg),
         'tivoController': TivoController(cfg, mqtt),
