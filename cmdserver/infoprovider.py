@@ -50,7 +50,7 @@ class InfoProvider:
                 'port': self.__ms.port,
                 'token': '',
                 'ssl': False,
-                'alive': True
+                'alive': False
             },
             'zones': {}
         }
@@ -61,7 +61,7 @@ class InfoProvider:
             self.__mqtt.offline(self.__mqtt_name)
 
     def __state_to_str(self) -> str:
-        return json.dumps(self.__current_state, ensure_ascii=False)
+        return json.dumps(self.info, ensure_ascii=False)
 
     @property
     def info(self):
@@ -91,7 +91,8 @@ class InfoProvider:
                 else:
                     zd = self.__zone_to_dict(z, None)
                 zones_data[z.id] = zd
-            playing = self.__current_state.get('playingCommand', {})
+            playing = self.info.get('playingCommand', {})
+            was_alive = self.info['config']['alive']
             self.__current_state = {
                 'config': {
                     'host': self.__ms.local_ip,
@@ -104,11 +105,12 @@ class InfoProvider:
                 'playingCommand': playing
             }
             last_active_zone_id = playing.get('id', '')
-            playing['active'] = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
+            playing['active'] = self.get_active_command(zones_data.get(active_zone.id, None))
             if active_zone.id:
                 playing['id'] = active_zone.id
             self.__ws_server.broadcast(self.__state_to_str())
-            self.__broadcast_up()
+            if not was_alive:
+                self.__mqtt.online(self.__mqtt_name)
             if active_zone.id != last_active_zone_id:
                 self.__mqtt.publish(self.__mqtt_name, json.dumps({'zone': active_zone.id}))
         except ConnectTimeout as e:
@@ -133,15 +135,8 @@ class InfoProvider:
             logger.exception(f"Unexpected failure to refresh current state of {self.__ms.address()}")
             self.__broadcast_down()
 
-    def __broadcast_up(self):
-        was_alive = not self.__current_state or self.__current_state.get('config', {}).get('alive', True) is True
-        if not was_alive:
-            logger.warning(f"Broadcasting MC is UP")
-            if self.__mqtt:
-                self.__mqtt.online(self.__mqtt_name)
-
     def __broadcast_down(self):
-        was_alive = not self.__current_state or self.__current_state.get('config', {}).get('alive', True) is True
+        was_alive = self.__current_state['config']['alive'] is True
         if was_alive:
             logger.warning(f"Broadcasting MC is DOWN")
         self.__current_state = {
@@ -153,7 +148,7 @@ class InfoProvider:
                 'alive': False
             },
             'zones': self.__current_state['zones'] if self.__current_state else {},
-            'playingCommand': {'active': DEFAULT_ACTIVE_COMMAND}
+            'playingCommand': {'active': DEFAULT_ACTIVE_COMMAND, 'id': ''}
         }
         self.__ws_server.broadcast(self.__state_to_str())
         if self.__mqtt:
