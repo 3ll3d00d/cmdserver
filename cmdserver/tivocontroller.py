@@ -503,7 +503,7 @@ class Tivo:
                     self.current_channel_num = -1
                 if last_ch != self.current_channel and self.__mqtt:
                     ch_name = CHANNELS.get(str(self.current_channel_num), 'Unknown')
-                    self.__mqtt.publish(f'tivo/{self.name}/state', ch_name)
+                    self.__mqtt.state(f'tivo/{self.name}', ch_name)
         logger.info(f"[{self.name}] Exiting status reader")
 
     @property

@@ -37,12 +37,18 @@ class MQTT:
     def __on_disconnect(self, client, userdata, rc):
         logger.warning(f'Disconnected from MQTT [result: {rc}]')
 
-    def publish(self, source: str, payload):
+    def __publish(self, source: str, payload):
         logger.info(f'Publishing {source} -- {payload}')
         self.__client.publish(f'cmdserver/{source}', qos=1, payload=payload, retain=True)
 
+    def state(self, source: str, payload):
+        self.__publish(f'{source}/state', payload)
+
+    def attributes(self, source: str, payload):
+        self.__publish(f'{source}/attributes', payload)
+
     def online(self, source: str):
-        self.publish(f'{source}/available', 'online')
+        self.__publish(f'{source}/available', 'online')
 
     def offline(self, source: str):
-        self.publish(f'{source}/available', 'offline')
+        self.__publish(f'{source}/available', 'offline')

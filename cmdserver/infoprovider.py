@@ -112,7 +112,8 @@ class InfoProvider:
             if not was_alive:
                 self.__mqtt.online(self.__mqtt_name)
             if active_zone.id != last_active_zone_id:
-                self.__mqtt.publish(self.__mqtt_name, json.dumps({'zone': active_zone.id}))
+                self.__mqtt.state(self.__mqtt_name, active_zone.id)
+                self.__mqtt.attributes(self.__mqtt_name, json.dumps({'zone_name', active_zone.name}))
         except ConnectTimeout as e:
             logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
             self.__broadcast_down()

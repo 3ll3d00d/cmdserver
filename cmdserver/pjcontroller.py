@@ -58,8 +58,8 @@ class PJController:
                     update_in = 10
                 else:
                     update_in = 1 if power == PowerState.Starting or power == PowerState.Cooling else 20
-                self.__mqtt.publish('pj/state', power.name)
-                self.__mqtt.publish('pj/attributes', json.dumps(self.__attributes))
+                self.__mqtt.state('pj', power.name)
+                self.__mqtt.attributes('pj', json.dumps(self.__attributes))
                 self.__update_state_in(update_in=update_in)
                 self.__disconnect()
                 logger.info('Refreshed PJ State')
