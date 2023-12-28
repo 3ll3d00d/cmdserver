@@ -4,14 +4,11 @@ import logging
 import re
 from typing import Tuple, List, Optional
 
-import pymcws
-
 from plumbum import local
 from pymcws import MediaServer, Zone
 from requests import ConnectTimeout
 from twisted.internet import task, threads
 from twisted.internet.defer import Deferred
-from urllib3.exceptions import MaxRetryError
 
 from cmdserver.config import Config
 from cmdserver.ws import WsServer
@@ -22,7 +19,6 @@ logger = logging.getLogger('infoprovider')
 
 
 class InfoProvider:
-
     VOLUME_PATTERN = re.compile(r'.*\(([-+][0-9]+\.[0-9]) dB\)')
 
     def __init__(self, config: Config, ws_server: WsServer):
@@ -45,9 +41,22 @@ class InfoProvider:
         self.__ms.local_ip_list = config.mcws.get('ip', '127.0.0.1')
         self.__ms.local_ip = self.__ms.local_ip_list
         self.__token = None
-        self.__current_state = {}
+        self.__current_state = {
+            'config': {
+                'host': self.__ms.local_ip,
+                'port': self.__ms.port,
+                'token': '',
+                'ssl': False,
+                'alive': True
+            },
+            'zones': {}
+        }
+        self.__ws_server.factory.init(self.__state_to_str)
         self.__refresh_task = task.LoopingCall(self.refresh)
         self.__deferred = self.__refresh_task.start(self.__interval)
+
+    def __state_to_str(self) -> str:
+        return json.dumps(self.__current_state, ensure_ascii=False)
 
     @property
     def info(self):
@@ -66,6 +75,7 @@ class InfoProvider:
         return threads.deferToThread(self.__async_refresh)
 
     def __async_refresh(self):
+        logger.info(f'Refreshing MC state from {self.__ms.local_ip}')
         try:
             zones, active_zone = get_zones(self.__ms)
             playback_info = get_playback_info(self.__ms, active_zone)
@@ -88,7 +98,7 @@ class InfoProvider:
             }
             active_command = self.get_active_command(self.__current_state['zones'].get(active_zone.id, None))
             self.__current_state['playingCommand'] = {'active': active_command}
-            self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
+            self.__ws_server.broadcast(self.__state_to_str())
         except ConnectTimeout as e:
             logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
             self.__broadcast_down()
@@ -126,7 +136,7 @@ class InfoProvider:
             'zones': self.__current_state['zones'] if self.__current_state else {},
             'playingCommand': {'active': DEFAULT_ACTIVE_COMMAND}
         }
-        self.__ws_server.broadcast(json.dumps(self.__current_state, ensure_ascii=False))
+        self.__ws_server.broadcast(self.__state_to_str())
 
     def wake(self) -> bool:
         if self.__ms_mac:
