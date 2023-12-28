@@ -12,7 +12,7 @@ from twisted.internet.defer import Deferred
 
 from cmdserver.config import Config
 from cmdserver.ws import WsServer
-from mqtt import MQTT
+from cmdserver.mqtt import MQTT
 
 DEFAULT_ACTIVE_COMMAND = 'Music'
 
