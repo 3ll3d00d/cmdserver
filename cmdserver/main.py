@@ -64,8 +64,8 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
 def main(args=None):
     """ The main routine. """
     cfg = Config('cmdserver')
-    app, ws_server = create_app(cfg)
     logger = cfg.configure_logger()
+    app, ws_server = create_app(cfg)
 
     import logging
     logger = logging.getLogger('twisted')
