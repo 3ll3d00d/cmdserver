@@ -35,7 +35,9 @@ class PJController:
             from twisted.internet import task
             self.__looping = task.LoopingCall(self.refresh)
             logger.info(f'Initiating PJ refresh every 20s')
-            self.__looping.start(20, now=False)
+            d = self.__looping.start(20, now=False)
+            from twisted.python import log
+            d.addErrback(log.err)
 
     def refresh(self) -> Deferred:
         return threads.deferToThread(self.__update_state)
