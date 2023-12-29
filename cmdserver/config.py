@@ -124,7 +124,7 @@ class Config:
         :return: the base logger.
         """
         base_log_level = logging.DEBUG if self.is_debug_logging else logging.INFO
-        console_log_level = logging.INFO if self.is_debug_logging else logging.WARN
+        console_log_level = logging.DEBUG if self.is_debug_logging else logging.INFO
         # create root logger
         logger = logging.getLogger()
         logger.setLevel(base_log_level)
@@ -136,7 +136,7 @@ class Config:
         ch = logging.StreamHandler()
         ch.setLevel(console_log_level)
         # create formatter and add it to the handlers
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - [%(threadName)s] - %(levelname)s - %(funcName)s - %(message)s')
         fh.setFormatter(formatter)
         ch.setFormatter(formatter)
         # add the handlers to the logger

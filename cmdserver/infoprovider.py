@@ -55,8 +55,11 @@ class InfoProvider:
             'zones': {}
         }
         self.__ws_server.factory.init(self.__state_to_str)
+        logger.info(f'Refreshing MC state every {self.__interval}s')
         self.__refresh_task = task.LoopingCall(self.refresh)
         self.__deferred = self.__refresh_task.start(self.__interval)
+        from twisted.python import log
+        self.__deferred.addErrback(log.err)
         if self.__mqtt:
             self.__mqtt.offline(self.__mqtt_name)
 
@@ -119,13 +122,13 @@ class InfoProvider:
             self.__broadcast_down()
         except OSError as e:
             if e.errno == 113:
-                logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+                logger.warning(f"Unable to connect, MC probably sleeping ({self.__ms.address()})")
             else:
                 e = e.__context__
                 while e is not None and not isinstance(e, OSError):
                     e = e.__context__
                 if e is not None and e.errno == 113:
-                    logger.warning(f"Unable to connect, MC probably sleeping {e.request.method} {e.request.url}")
+                    logger.warning(f"Unable to connect, MC probably sleeping ({self.__ms.address()})")
                 else:
                     logger.exception(f"Unknown OSError when refreshing current state of {self.__ms.address()}")
             self.__broadcast_down()
@@ -135,9 +138,11 @@ class InfoProvider:
         except:
             logger.exception(f"Unexpected failure to refresh current state of {self.__ms.address()}")
             self.__broadcast_down()
+        finally:
+            logger.debug(f'Refreshed MC state from {self.__ms.local_ip}')
 
     def __broadcast_down(self):
-        was_alive = self.__current_state['config']['alive'] is True
+        was_alive = self.__current_state['config']['alive'] is True or self.__current_state['config']['token'] == ''
         if was_alive:
             logger.warning(f"Broadcasting MC is DOWN")
         self.__current_state = {

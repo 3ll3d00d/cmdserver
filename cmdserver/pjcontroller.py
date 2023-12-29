@@ -5,6 +5,9 @@ from threading import Lock
 from time import sleep
 from typing import Optional, Tuple, Union
 
+from twisted.internet import threads
+from twisted.internet.defer import Deferred
+
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PowerState, \
@@ -30,9 +33,12 @@ class PJController:
         self.__looping = None
         if self.__mqtt:
             from twisted.internet import task
-            self.__looping = task.LoopingCall(self.__update_state)
+            self.__looping = task.LoopingCall(self.refresh)
             logger.info(f'Initiating PJ refresh every 20s')
             self.__looping.start(20, now=False)
+
+    def refresh(self) -> Deferred:
+        return threads.deferToThread(self.__update_state)
 
     def __update_state(self):
         update_in = 0.5
