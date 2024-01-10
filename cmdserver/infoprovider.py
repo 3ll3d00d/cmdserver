@@ -235,6 +235,8 @@ class InfoProvider:
             return 'Paused'
         elif state == 2:
             return 'Playing'
+        elif state == 3:
+            return 'Waiting'
         else:
             return 'Unknown'
 

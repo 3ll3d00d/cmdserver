@@ -1,12 +1,13 @@
 import json
 import logging
+import threading
+import time
+from dataclasses import dataclass, field
 from enum import Enum
+from queue import Empty, Queue
 from threading import Lock
 from time import sleep
-from typing import Optional, Tuple, Union
-
-from twisted.internet import threads
-from twisted.internet.defer import Deferred
+from typing import Optional, Tuple, Union, Any, Callable
 
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
@@ -24,26 +25,45 @@ class PJController:
         self.__mqtt = mqtt
         self.__executor = CommandExecutor(host=config.pj_ip) if config.pj_ip else None
         self.__commands = load_all_commands()
+        self.__queue = Queue()
         self.__lock = Lock()
         self.__attributes = {
             'anamorphicMode': '',
             'installationMode': '',
             'pictureMode': ''
         }
-        self.__looping = None
+        self.__last_updated_at = time.time()
         if self.__mqtt:
-            from twisted.internet import task
-            self.__looping = task.LoopingCall(self.refresh)
-            logger.info(f'Initiating PJ refresh every 20s')
-            d = self.__looping.start(20, now=False)
-            from twisted.python import log
-            d.addErrback(log.err)
+            logger.info("MQTT is enabled, refreshing PJ state in 20s")
+            self.__running = threading.Event()
+            self.__running.set()
+            self.__worker = threading.Thread(target=self.__do_work, daemon=True).start()
+            from twisted.internet import reactor
+            reactor.callLater(20.0, lambda: self.__queue.put_nowait(self.__update_state))
 
-    def refresh(self) -> Deferred:
-        return threads.deferToThread(self.__update_state)
+    def __do_work(self):
+        logger.info(f'Entering PJ executor thread')
+        while self.__running.is_set():
+            try:
+                payload = self.__queue.get(timeout=5)
+                if isinstance(payload, Callable):
+                    payload()
+                else:
+                    logger.warning(f'Ignoring unknown item, should be Callable {payload}')
+                self.__queue.task_done()
+            except Empty:
+                pass
+        logger.info(f'Exiting PJ executor thread')
 
     def __update_state(self):
-        update_in = 0.5
+        last = self.__last_updated_at
+        now = time.time()
+        self.__last_updated_at = now
+        if now - last < 0.5:
+            logger.warning(f'Suppressing request, too soon since last update')
+            return
+
+        update_in = 1
         with self.__lock:
             logger.info('Refreshing PJ State')
             cmd = Command.Power
@@ -82,11 +102,9 @@ class PJController:
                 logger.exception(f"Unexpected failure while executing cmd: {cmd}")
 
     def __update_state_in(self, update_in: float = 20, reason: str = None):
-        suffix = f' due to {reason}' if reason else ''
-        if self.__looping.interval != update_in:
-            logger.info(f'Changing PJ refresh rate from {self.__looping.interval} to {update_in}s{suffix}')
-            self.__looping.stop()
-            self.__looping.start(update_in, now=False)
+        logger.debug(f'Scheduling update in {update_in}s due to {reason}')
+        from twisted.internet import reactor
+        reactor.callLater(update_in, lambda: self.__queue.put_nowait(self.__update_state))
 
     @property
     def state(self):
