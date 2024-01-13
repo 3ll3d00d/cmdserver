@@ -30,7 +30,9 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
     mqtt = None
     if cfg.mqtt:
         mqtt = MQTT(cfg.mqtt['ip'], cfg.mqtt.get('port', 1883), cfg.mqtt.get('user', None), cfg.mqtt.get('cred', None))
-    info_provider = InfoProvider(cfg, ws_server, mqtt)
+    info_provider = None
+    if cfg.mcws:
+        info_provider = InfoProvider(cfg, ws_server, mqtt)
     resource_args = {
         'command_controller': CommandController(cfg),
         'tivoController': TivoController(cfg, mqtt),
@@ -51,13 +53,15 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
 
     decorate_ns(commands.api)
     decorate_ns(command.api)
-    decorate_ns(playingnow.api)
+    if info_provider:
+        decorate_ns(playingnow.api)
     decorate_ns(tivos.api)
     decorate_ns(tivo.api)
     decorate_ns(info.api)
     decorate_ns(pj.api)
     decorate_ns(version.api)
-    decorate_ns(wake.api)
+    if info_provider:
+        decorate_ns(wake.api)
     return app, ws_server
 
 
