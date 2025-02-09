@@ -21,12 +21,7 @@ class Config:
         self.pj_ip = self.config.get('pjip', None)
         self.playingNowExe = self.config.get('playingNowExe', None)
         self.webappPath = self.config.get('webappPath', None)
-        self.mcws = self.config.get('mcws', {})
-        self.tivoname = self.config.get('tivoname', None)
-        self.find_tivo = self.config.get('findTivo', False)
         self.mqtt = self.config.get('mqtt', {})
-        # name, port, version, address
-        self.tivo = self.config.get('tivo', None)
 
     @staticmethod
     def ensure_dir_exists(dir):

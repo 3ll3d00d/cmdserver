@@ -1,19 +1,14 @@
 import faulthandler
 import os
 from os import path
-from typing import Tuple
 
-from autobahn.twisted.resource import WebSocketResource
 from flask import Flask
 from flask_restx import Api
 
 from cmdserver.pjcontroller import PJController
-from cmdserver.apis import command, commands, playingnow, tivo, tivos, pj, info, version, wake
+from cmdserver.apis import command, commands, pj, info, version
 from cmdserver.commandcontroller import CommandController
 from cmdserver.config import Config
-from cmdserver.infoprovider import InfoProvider
-from cmdserver.tivocontroller import TivoController
-from cmdserver.ws import WsServer
 from cmdserver.mqtt import MQTT
 
 API_PREFIX = '/api/1'
@@ -25,19 +20,13 @@ if hasattr(faulthandler, 'register'):
     faulthandler.register(signal.SIGUSR2, all_threads=True)
 
 
-def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
-    ws_server = WsServer()
+def create_app(cfg: Config) -> Flask:
     mqtt = None
     if cfg.mqtt:
         mqtt = MQTT(cfg.mqtt['ip'], cfg.mqtt.get('port', 1883), cfg.mqtt.get('user', None), cfg.mqtt.get('cred', None))
-    info_provider = None
-    if cfg.mcws:
-        info_provider = InfoProvider(cfg, ws_server, mqtt)
     resource_args = {
         'command_controller': CommandController(cfg),
-        'tivoController': TivoController(cfg, mqtt),
         'pj_controller': PJController(cfg, mqtt),
-        'info_provider': info_provider,
         'mqtt': mqtt,
         'config': cfg,
         'version': cfg.version
@@ -53,23 +42,17 @@ def create_app(cfg: Config) -> Tuple[Flask, 'WsServer']:
 
     decorate_ns(commands.api)
     decorate_ns(command.api)
-    if info_provider:
-        decorate_ns(playingnow.api)
-    decorate_ns(tivos.api)
-    decorate_ns(tivo.api)
     decorate_ns(info.api)
     decorate_ns(pj.api)
     decorate_ns(version.api)
-    if info_provider:
-        decorate_ns(wake.api)
-    return app, ws_server
+    return app
 
 
 def main(args=None):
     """ The main routine. """
     cfg = Config('cmdserver')
     logger = cfg.configure_logger()
-    app, ws_server = create_app(cfg)
+    app = create_app(cfg)
 
     import logging
     logger = logging.getLogger('twisted')
@@ -133,8 +116,6 @@ def main(args=None):
             self.react = ReactApp(uiRoot)
             self.static = static.File(os.path.join(uiRoot, 'static'))
             self.icons = static.File(cfg.iconPath)
-            ws_server.factory.startFactory()
-            self.ws_resource = WebSocketResource(ws_server.factory)
 
         def getChild(self, path, request):
             """
@@ -151,9 +132,7 @@ def main(args=None):
             request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
             request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
             logger.debug(f"Handling {path}")
-            if path == b'ws':
-                return self.ws_resource
-            elif path == b'api':
+            if path == b'api':
                 request.prepath.pop()
                 request.postpath.insert(0, path)
                 return self.wsgi
