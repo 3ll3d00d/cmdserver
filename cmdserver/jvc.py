@@ -64,8 +64,8 @@ END = b'\x0a'
 
 class Protocol:
     """JVC projector protocol, understands how to send commands and handle the responses"""
-    def __init__(self, host):
-        self.conn = Connection(host=host)
+    def __init__(self, host, password=None):
+        self.conn = Connection(host=host, password=password)
         self.reconnect = False
 
     def __enter__(self):
@@ -152,10 +152,19 @@ class Protocol:
 
 class Connection:
     """JVC projector network connection, handles low level socket comms and connection initialisation """
-    def __init__(self, host, port=DEFAULT_PORT):
+    def __init__(self, host, port=DEFAULT_PORT, password=None):
         self.__socket = None
         self.__port = port
         self.__host = host
+        if password is not None:
+            import hashlib
+            import struct
+            m = hashlib.sha256(password.encode())
+            m.update(b'JVCKWPJ')
+            p = m.hexdigest()
+            self._auth_suffix = b'_' + struct.pack(f"{max(10, len(p))}s", p.encode())
+        else:
+            self._auth_suffix = b''
         self.__close_time = 0.0
 
     def connect(self):
@@ -182,7 +191,7 @@ class Connection:
     def __init_pj(self):
         logger.debug(f">> Protocol init")
         self.expect(PJ_OK)
-        self.send(PJ_REQ)
+        self.send(PJ_REQ + self._auth_suffix)
         self.expect(PJ_ACK)
         logger.debug(f"<< Protocol init")
 
@@ -255,8 +264,8 @@ class Connection:
 
 class CommandExecutor:
     """ Provides ability to execute specific commands """
-    def __init__(self, host):
-        self.conn = Protocol(host)
+    def __init__(self, host, password=None):
+        self.conn = Protocol(host, password=password)
 
     def __enter__(self):
         self.conn.__enter__()

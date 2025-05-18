@@ -19,6 +19,7 @@ class Config:
         self.commands = self.config.get('commands', {})
         self.pj_macros = self.config.get('pjmacros', {})
         self.pj_ip = self.config.get('pjip', None)
+        self.pj_password = self.config.get('pjPassword', None)
         self.playingNowExe = self.config.get('playingNowExe', None)
         self.webappPath = self.config.get('webappPath', None)
         self.mqtt = self.config.get('mqtt', {})

@@ -23,7 +23,7 @@ class PJController:
     def __init__(self, config, mqtt: Optional[MQTT]):
         self.__pj_macros = config.pj_macros
         self.__mqtt = mqtt
-        self.__executor = CommandExecutor(host=config.pj_ip) if config.pj_ip else None
+        self.__executor = CommandExecutor(host=config.pj_ip, password=config.pj_password) if config.pj_ip else None
         self.__commands = load_all_commands()
         self.__queue = Queue()
         self.__lock = Lock()
