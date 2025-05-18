@@ -14,10 +14,10 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -59,10 +59,10 @@ jobs:
       - name: Set version
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
@@ -109,10 +109,10 @@ jobs:
       - name: Set version
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: 3.13
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
