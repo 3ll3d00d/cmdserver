@@ -14,6 +14,7 @@ from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PowerState, \
     READ_ONLY_RC
 from cmdserver.mqtt import MQTT
+from jvccommands import InstallationMode
 
 logger = logging.getLogger('pjcontroller')
 
@@ -76,11 +77,12 @@ class PJController:
                     ana = self.__executor.get(cmd)
                     cmd = Command.PictureMode
                     pic = self.__executor.get(cmd)
-                    cmd = Command.InstallationMode
-                    install = self.__executor.get(cmd)
+                    # cmd = Command.InstallationMode
+                    # install = self.__executor.get(cmd)
                     self.__attributes = {
                         'anamorphicMode': ana.name,
-                        'installationMode': install.name,
+                        # 'installationMode': install.name,
+                        'installationMode': InstallationMode.ONE.name,
                         'pictureMode': pic.name
                     }
                     update_in = 10
@@ -92,17 +94,19 @@ class PJController:
                 self.__disconnect()
                 logger.info('Refreshed PJ State')
             except CommandNack:
+                # self.__update_state_in(update_in=10)
+                # self.__hard_disconnect()
                 self.__update_state_in(update_in=update_in)
                 self.__disconnect()
                 logger.exception(f"Command NACKed - GET {cmd}")
             except:
                 self.__mqtt.offline('pj')
-                self.__update_state_in(update_in=update_in)
-                self.__disconnect()
+                self.__update_state_in(update_in=10)
+                self.__hard_disconnect()
                 logger.exception(f"Unexpected failure while executing cmd: {cmd}")
 
     def __update_state_in(self, update_in: float = 20, reason: str = None):
-        logger.debug(f'Scheduling update in {update_in}s due to {reason}')
+        logger.debug(f'Scheduling update in {update_in}s {"due to " if reason else ""}{reason}')
         from twisted.internet import reactor
         reactor.callLater(update_in, lambda: self.__queue.put_nowait(self.__update_state))
 
@@ -119,6 +123,10 @@ class PJController:
 
     @debounce(4)
     def __disconnect(self):
+        self.__executor.disconnect(fail=False)
+
+    @debounce(0.001)
+    def __hard_disconnect(self):
         self.__executor.disconnect(fail=False)
 
     def get(self, command):

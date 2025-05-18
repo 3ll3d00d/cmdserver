@@ -75,7 +75,7 @@ class Protocol:
     def __exit__(self, exception, value, traceback):
         self.conn.__exit__(exception, value, traceback)
 
-    def __cmd(self, cmdtype, cmd, sendrawdata=None, acktimeout=1):
+    def __cmd(self, cmdtype, cmd, sendrawdata=None, acktimeout=2):
         """Send command and optional raw data and wait for acks"""
         logger.debug(f"  > Cmd:{cmdtype} {cmdtype.value+cmd}")
         assert cmdtype == Header.operation or cmdtype == Header.reference
@@ -152,11 +152,13 @@ class Protocol:
 
 class Connection:
     """JVC projector network connection, handles low level socket comms and connection initialisation """
-    def __init__(self, host, port=DEFAULT_PORT, password=None):
+    def __init__(self, host, port=DEFAULT_PORT, password=None, socket_timeout=2):
         self.__socket = None
         self.__port = port
         self.__host = host
+        self.__socket_timeout = socket_timeout
         if password is not None:
+            logger.info(f"Connecting to {host}:{port} using password: {password}")
             import hashlib
             import struct
             m = hashlib.sha256(password.encode())
@@ -164,6 +166,7 @@ class Connection:
             p = m.hexdigest()
             self._auth_suffix = b'_' + struct.pack(f"{max(10, len(p))}s", p.encode())
         else:
+            logger.info(f"Connecting to {host}:{port} (no password)")
             self._auth_suffix = b''
         self.__close_time = 0.0
 
@@ -172,14 +175,14 @@ class Connection:
         if self.__socket is None:
             self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             request_time = time.time()
-            to_wait = 1.0 - (request_time - self.__close_time)
-            if 1 > to_wait > 0:
+            to_wait = min(10.0, self.__socket_timeout - (request_time - self.__close_time) + 0.5)
+            if to_wait > 0:
                 close_time_fmt = datetime.fromtimestamp(self.__close_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
                 logger.info(f"Waiting {to_wait:.3f}s to reopen socket [closed at: {close_time_fmt}]")
                 time.sleep(to_wait)
             try:
-                logger.info(f"Connecting to {self.__host}:{self.__port}")
-                self.__socket.settimeout(1)
+                logger.info(f"Connecting to {self.__host}:{self.__port} with timeout of {self.__socket_timeout}s")
+                self.__socket.settimeout(self.__socket_timeout)
                 self.__socket.connect((self.__host, self.__port))
                 logger.info(f"Connected to {self.__host}:{self.__port}")
                 self.__init_pj()
@@ -192,7 +195,8 @@ class Connection:
         logger.debug(f">> Protocol init")
         self.expect(PJ_OK)
         self.send(PJ_REQ + self._auth_suffix)
-        self.expect(PJ_ACK)
+        if self.expect(PJ_ACK, timeout=2) == -1:
+            raise Error(f'Protocol init failed [{self.__host}:{self.__port}]')
         logger.debug(f"<< Protocol init")
 
     def __enter__(self):
