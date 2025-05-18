@@ -12,7 +12,7 @@ from typing import Optional, Tuple, Union, Any, Callable
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PowerState, \
-    READ_ONLY_RC
+    READ_ONLY_RC, Model
 from cmdserver.mqtt import MQTT
 from jvccommands import InstallationMode
 
@@ -77,13 +77,18 @@ class PJController:
                     ana = self.__executor.get(cmd)
                     cmd = Command.PictureMode
                     pic = self.__executor.get(cmd)
-                    # cmd = Command.InstallationMode
-                    # install = self.__executor.get(cmd)
+                    cmd = Command.Model
+                    md = self.__executor.get(cmd)
+                    if md != Model.DLA_NZ700:
+                        cmd = Command.InstallationMode
+                        install = self.__executor.get(cmd)
+                    else:
+                        install = InstallationMode.ONE.name
                     self.__attributes = {
                         'anamorphicMode': ana.name,
-                        # 'installationMode': install.name,
-                        'installationMode': InstallationMode.ONE.name,
-                        'pictureMode': pic.name
+                        'installationMode': install,
+                        'pictureMode': pic.name,
+                        'model': md.name,
                     }
                     update_in = 10
                 else:

@@ -32,6 +32,7 @@ class BinaryData:
 class Model(ReadOnly, Enum):
     """Projector model code"""
     DLA_N7 = b'ILAFPJ -- B2A2'
+    DLA_NZ700 = b'ILAFPJ -- D8A1'
 
 
 def s8_bytes_to_list(bstr):
