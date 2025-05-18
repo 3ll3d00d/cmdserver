@@ -12,9 +12,8 @@ from typing import Optional, Tuple, Union, Any, Callable
 from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PowerState, \
-    READ_ONLY_RC, Model
+    READ_ONLY_RC, Model, InstallationMode
 from cmdserver.mqtt import MQTT
-from jvccommands import InstallationMode
 
 logger = logging.getLogger('pjcontroller')
 

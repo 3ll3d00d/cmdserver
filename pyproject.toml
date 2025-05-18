@@ -1,6 +1,6 @@
 [project]
 name = "ezmote-cmdserver"
-version = "2.0.4"
+version = "2.0.5"
 description = "A small webapp which can be used for web based home cinema automation"
 authors = [
     { name = "3ll3d00d", email = "mattkhan+cmdserver@gmail.com" }
