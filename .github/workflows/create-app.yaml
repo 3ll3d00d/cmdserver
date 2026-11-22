@@ -10,137 +10,128 @@ jobs:
   create_release:
     name: Create Release
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: 3.13
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          virtualenvs-in-project: true
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          enable-cache: true
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-      - name: Install project
-        run: poetry install --no-interaction
+        env:
+          UV_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+        run: uv sync --locked
+      - name: pytest
+        env:
+          UV_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+        run: uv run pytest --cov=./cmdserver --cov-report=xml
       - name: Generate changelog
         id: changelog
-        uses: metcalfc/changelog-generator@v4.0.1
+        uses: metcalfc/changelog-generator@v5.0.1
         with:
           myToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Create release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
-          prerelease: true
+          prerelease: ${{ steps.release_type.outputs.prerelease }}
+          make_latest: ${{ steps.release_type.outputs.prerelease == 'false' }}
   buildpypi:
     name: Publish to Pypi
     needs: create_release
     runs-on: ubuntu-latest
+    # PyPI trusted publishing: the ezmote-cmdserver project on PyPI must list this repo, this workflow file and
+    # the `release` environment as a trusted publisher.
+    environment:
+      name: release
+      url: https://pypi.org/p/ezmote-cmdserver
+    permissions:
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Get latest release version number
         id: get_version
-        uses: battila7/get-version-action@v2
+        run: echo "version-without-v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - name: Set version
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: 3.13
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          virtualenvs-in-project: true
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-      - name: Install project
-        run: poetry install --no-interaction
+          enable-cache: true
       - name: Build dist
-        run: poetry build
+        env:
+          UV_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          # Package version comes from the tag via hatch-vcs; pin it explicitly so a
+          # shallow checkout can't produce a dev version.
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.get_version.outputs.version-without-v }}
+        run: uv build
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-      - uses: octokit/request-action@v2.x
-        with:
-          route: POST /repos/{owner}/{repo}/dispatches
-          owner: 3ll3d00d
-          repo: cmdserver-image
-          event_type: 'trigger'
-        env:
-          GITHUB_TOKEN: ${{ secrets.CMDSERVERIMG }}
   buildpyinstaller:
     name: Publish to Github
     needs: create_release
+    permissions:
+      contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ windows-latest ]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Get latest release version number
         id: get_version
-        uses: battila7/get-version-action@v2
+        run: echo "version-without-v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - name: Set version
         run: |
           echo ${{ steps.get_version.outputs.version-without-v }} > cmdserver/VERSION
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: 3.13
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          virtualenvs-in-project: true
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          enable-cache: true
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --with exe --no-interaction --no-root
-      - name: Install project
-        run: poetry install --with exe --no-interaction
+        env:
+          UV_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.get_version.outputs.version-without-v }}
+        run: uv sync --locked --group exe
       - name: Create distribution
         id: create_dist
+        env:
+          UV_PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: |
-          poetry run pyinstaller --clean --log-level=INFO cmdserver.spec
+          uv run pyinstaller --clean --log-level=INFO cmdserver.spec
           echo "binary_path=dist/cmdserver.exe" >> $GITHUB_OUTPUT
-          echo "binary_name=cmdserver.exe" >> $GITHUB_OUTPUT
-          echo "binary_content_type=application.vnd.microsoft.portable-executable" >> $GITHUB_OUTPUT
       - name: Upload asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: ${{ steps.create_dist.outputs.binary_name }}
-          asset_path: ${{ steps.create_dist.outputs.binary_path }}
-          asset_content_type: ${{ steps.create_dist.outputs.binary_content_type }}
+        run: |
+          gh release upload ${{ github.ref_name }} ${{ steps.create_dist.outputs.binary_path }}

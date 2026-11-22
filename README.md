@@ -98,3 +98,49 @@ Example config
     port: 53199
     # use for debug
     webappPath: 'C:\Users\mattk\github\ezmote\build'
+
+Install
+-------
+
+* PyPI: `pip install ezmote-cmdserver`, then run `cmdserver`
+* Windows: `cmdserver.exe` is attached to each [release](https://github.com/3ll3d00d/cmdserver/releases)
+* Docker: `ghcr.io/3ll3d00d/cmdserver` (`latest` = last release, `edge` = master, or a version e.g. `2.1.0`), for
+  linux/amd64 and linux/arm64. It listens on 53199 and reads `cmdserver.yml` from `$CMDSERVER_CONFIG_HOME` if set,
+  else `~/.cmdserver` (`/root/.cmdserver` in the container), so map a volume to one of those. It replaces
+  `ghcr.io/3ll3d00d/cmdserver-image`.
+
+Config is read from `$CMDSERVER_CONFIG_HOME/cmdserver.yml`, else `~/.cmdserver/cmdserver.yml`. A default config is
+written there on first start.
+
+Projector commands
+------------------
+
+`PUT /api/1/pj` takes a JSON list of commands, e.g. `["PictureMode.PictureMode.Natural", "PAUSE2.5",
+"Remote.RemoteCode.InstallationMode1"]`, or the names of `pjmacros`. Commands go to the projector one at a time,
+in order; concurrent requests are queued so the projector only ever sees one command at a time. A command the
+projector refuses (e.g. while it is still applying a picture mode change) is retried, 3 attempts in all, 1.5s
+apart, except toggles and menu/navigation keys, which are only ever sent once. The response is:
+
+* `200` – every command was acknowledged
+* `404` – `{"unknown": [...]}`, commands that were not recognised (nothing failed)
+* `500` – `{"failed": [...], "unknown": [...], "errors": [...]}`, commands the projector did not acknowledge even
+  after retries
+* `501` – no `pjip` is configured
+
+Development
+-----------
+
+Uses [uv](https://docs.astral.sh/uv/):
+
+    uv sync
+    uv run pytest
+    uv run cmdserver
+
+Build the Windows exe with `uv sync --group exe && uv run pyinstaller cmdserver.spec`, and the image with
+`docker build -f docker/Dockerfile .`.
+
+Releases
+--------
+
+The version comes from the git tag (hatch-vcs), there is no version to bump. Pushing a tag such as `2.1.0` runs
+`create-app.yaml` (tests, GitHub release, PyPI, Windows exe) and `docker.yaml` (versioned + `latest` image).

@@ -1,0 +1,26 @@
+# Never send these to the Docker build context
+
+# Python build artefacts
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+dist/
+build/
+.coverage
+coverage.xml
+
+# Git history
+.git/
+.gitignore
+
+# Local dev metadata
+.claude/
+.idea/
+ahk/
+tests/
+*.log

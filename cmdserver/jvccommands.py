@@ -5,8 +5,9 @@ logger = logging.getLogger(__name__)
 
 """ Commands from
  http://pro.jvc.com/pro/attributes/PRESENT/manual/2018_ILA-FPJ_Ext_Command_List_v1.2.pdf
- (replaced by v2.0 https://github.com/nicko88/HTPCRemote/raw/master/IP%20Control%20Spec%20Documents/JVC_NX.pdf)
+ replaced by v2.0 https://github.com/nicko88/HTPCRemote/raw/master/IP%20Control%20Spec%20Documents/JVC_NX.pdf)
  http://www.us.jvc.com/projectors/pdf/2018_ILA-FPJ_Remote_Control_Code_Table_V1.1.pdf 
+ for DLA-NZ700 see https://www.jvc.com/usa/projectors/installers-calibrators/external-command-communication-specification/
 """
 
 
@@ -131,7 +132,7 @@ class Null(WriteOnly, Enum):
 
 
 class RemoteCode(WriteOnly, Enum):
-    """Remote codes from http://pro.jvc.com/pro/attributes/PRESENT/manual/2018_ILA-FPJ_Remote_Control_Code_Table_V1.1.pdf"""
+    """Remote codes from https://support.jvc.com/consumer/support/documents/DILAremoteControlGuide.pdf"""
     Up = b'7301'
     Down = b'7302'
     Back = b'7303'
@@ -228,13 +229,17 @@ class PictureMode(Enum):
     Natural = b'03'
     HDR10 = b'04'
     THX = b'06'
-    User1 = b'0C'
-    User2 = b'0D'
-    User3 = b'0E'
-    User4 = b'0F'
+    FrameAdaptHDR = b'0B'
+    User1 = b'0C' # SDR1
+    User2 = b'0D' # SDR2
+    User3 = b'0E' # HDR1
+    User4 = b'0F' # HDR2
     User5 = b'10'
     User6 = b'11'
     HLG = b'14'
+    HDR10Plus = b'15'
+    Filmmaker = b'17'
+    Vivid = b'1B'
 
 
 class InstallationMode(Enum):
@@ -258,6 +263,14 @@ class IntelligentLensAperture(Enum):
     Auto2 = b'2'
 
 
+class DynamicCtrl(Enum):
+    """Dynamic CTRL Setting"""
+    Off = b'0'
+    Low = b'1'
+    High = b'2'
+    Balanced = b'3'
+
+
 class ColorProfile(Enum):
     """Color Profile"""
     Off = b'00'
@@ -277,6 +290,10 @@ class ColorProfile(Enum):
     Custom5 = b'12'
     DCI = b'21'
     Custom6 = b'22'
+    Vivid = b'23'
+    BT2020Normal = b'24'
+    OffWide = b'25'
+    Auto = b'26'
 
 
 class ColorTemperature(Enum):
@@ -292,6 +309,7 @@ class ColorTemperature(Enum):
     Xenon1 = b'0D'
     Xenon2 = b'0E'
     HLG = b'14'
+    HDR10Plus = b'15'
 
 
 class ColorTemperatureCorrection(Enum):
@@ -320,6 +338,8 @@ class GammaTable(Enum):
     Film2 = b'B'
     HDR_PQ = b'C'
     THX = b'10'
+    HDR_Auto = b'15'
+    Vivid = b'16'
 
 
 class GammaCorrection(Enum):
@@ -340,6 +360,7 @@ class GammaCorrection(Enum):
     Film2 = b'0F'
     HDR_HLQ = b'14'
     HDR_PQ = b'15'
+    Vivid = b'17'
 
 
 class ColorManagement(Enum):
@@ -358,6 +379,9 @@ class ClearMotionDrive(Enum):
     Low = b'3'
     High = b'4'
     InverseTelecine = b'5'
+    # NZ700
+    HIGH = b'6'
+    LOW = b'7'
 
 
 class MotionEnhance(Enum):
@@ -567,7 +591,9 @@ class DeepColorData(ReadOnly, str):
 class ColorSpaceData(ReadOnly, str):
     KNOWN_VALUES = {
         b'0': 'RGB',
-        b'1': 'YUV'
+        b'1': 'YCbCr422',
+        b'2': 'YCbCr444',
+        b'3': 'YCbCr420'
     }
 
     """Input Info Color Space"""
@@ -588,7 +614,9 @@ class ColorimetryData(ReadOnly, str):
         b'7': 'Adobe RGB',
         b'8': 'BT.2020 Constant Luminence',
         b'9': 'BT.2020 Non-Constant Luminence',
-        b'A': 'Reserved (Other)'
+        b'A': 'Reserved (Other)',
+        b'B': 'DCI-P3 (D65)',
+        b'C': 'DCI-P3 (Theater)',
     }
 
     def __new__(cls, value):
@@ -635,6 +663,7 @@ class Command(Enum):
     # Picture adjustment [adjustment of Picture] : Picture Adjust
     PictureMode = b'PMPM', PictureMode  # Picture Mode switch
     IntelligentLensAperture = b'PMDI', IntelligentLensAperture  # Intelligent Lens Aperture
+    DynamicCtrl = b'PMDC', DynamicCtrl  # Dynamic CTRL
     ColorProfile = b'PMPR', ColorProfile  # Color Profile switch (*1)
     ColorTemperatureTable = b'PMCL', ColorTemperature  # Color Temperature table
     ColorTemperatureCorrection = b'PMCC', ColorTemperatureCorrection  # Color Temperature Correction
