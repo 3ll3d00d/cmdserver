@@ -1,15 +1,17 @@
 import threading
 import time
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 from flask import Flask
 from flask_restx import Api
+from twisted.internet.task import Clock
 
 import cmdserver.pjcontroller as pjc
 from cmdserver.apis import pj as pj_api
 from cmdserver.jvc import CommandNack
-from cmdserver.jvccommands import Command, PictureMode
+from cmdserver.jvccommands import Command, Numeric, PictureMode
 
 NATURAL = 'PictureMode.PictureMode.Natural'
 USER2 = 'PictureMode.PictureMode.User2'
@@ -193,3 +195,64 @@ def test_toggle_or_navigation_is_never_retried(executor, cmd):
     result = make_controller().send([cmd])
     assert result.failed == [cmd]
     assert executor.sent == []
+
+
+class ReadingExecutor(FakeExecutor):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+
+    def get(self, cmd):
+        return self.value
+
+
+@pytest.mark.parametrize('value, expected', [
+    (Numeric(-12), -12),
+    (PictureMode.Natural, 'Natural'),
+])
+def test_get_returns_json_friendly_value(monkeypatch, fast_timings, value, expected):
+    monkeypatch.setattr(pjc, 'CommandExecutor', lambda host, password=None: ReadingExecutor(value))
+    result = make_controller().get('ColorTemperatureGainRed')
+    assert result == expected
+    assert type(result) is type(expected)
+
+
+def test_invalid_pause_is_reported_as_unknown(executor):
+    result = make_controller().send(['PAUSEsoon', NATURAL])
+    assert result.unknown == ['PAUSEsoon']
+    assert len(executor.sent) == 1
+
+
+@pytest.mark.parametrize('body', [None, 'PictureMode.PictureMode.Natural', [1], {'a': 1}])
+def test_api_rejects_malformed_payload(client, executor, body):
+    resp = client.put('/api/1/pj', json=body) if body is not None else client.put('/api/1/pj')
+    assert resp.status_code == 400
+    assert executor.sent == []
+
+
+class ThreadedClock(Clock):
+    """ a fake reactor: callFromThread runs immediately, callLater runs when the test advances the clock """
+
+    def callFromThread(self, f, *args, **kwargs):
+        f(*args, **kwargs)
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    import twisted.internet
+    c = ThreadedClock()
+    monkeypatch.setattr(twisted.internet, 'reactor', c, raising=False)
+    return c
+
+
+def test_only_one_state_refresh_is_ever_pending(executor, clock):
+    controller = pjc.PJController(SimpleNamespace(pj_ip='127.0.0.1', pj_password=None, pj_macros={}), MagicMock())
+    schedule = controller._PJController__update_state_in
+    assert [round(c.getTime()) for c in clock.getDelayedCalls()] == [20]
+    # a command asks for a refresh sooner: it replaces the pending one
+    controller.send([NATURAL])
+    assert [round(c.getTime()) for c in clock.getDelayedCalls()] == [1]
+    # a later request does not start a second cycle
+    schedule(update_in=20)
+    schedule(update_in=10)
+    assert [round(c.getTime()) for c in clock.getDelayedCalls()] == [1]

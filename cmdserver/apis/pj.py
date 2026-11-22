@@ -41,7 +41,9 @@ class UpdatePJ(Resource):
 
     def put(self):
         if self.__pj_controller.enabled:
-            payload = request.get_json()
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, list) or not all(isinstance(c, str) for c in payload):
+                return {'error': 'expected a JSON list of command strings'}, 400
             logger.info(f"Executing {payload}")
             result = self.__pj_controller.send(payload)
             if result.failed:

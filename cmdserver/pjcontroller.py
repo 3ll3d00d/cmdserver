@@ -56,13 +56,15 @@ class PJController:
             'pictureMode': ''
         }
         self.__last_updated_at = time.time()
+        # the one pending state refresh, only ever read or changed on the reactor thread
+        self.__next_update = None
         if self.__mqtt:
             logger.info("MQTT is enabled, refreshing PJ state in 20s")
             self.__running = threading.Event()
             self.__running.set()
-            self.__worker = threading.Thread(target=self.__do_work, daemon=True).start()
-            from twisted.internet import reactor
-            reactor.callLater(20.0, lambda: self.__queue.put_nowait(self.__update_state))
+            self.__worker = threading.Thread(target=self.__do_work, daemon=True)
+            self.__worker.start()
+            self.__update_state_in(update_in=20, reason='startup')
 
     def __do_work(self):
         logger.info(f'Entering PJ executor thread')
@@ -84,6 +86,8 @@ class PJController:
         self.__last_updated_at = now
         if now - last < 0.5:
             logger.warning(f'Suppressing request, too soon since last update')
+            # keep the refresh cycle going, nothing else will schedule the next one
+            self.__update_state_in(update_in=1, reason='suppressed refresh')
             return
 
         update_in = 1
@@ -133,9 +137,31 @@ class PJController:
                 logger.exception(f"Unexpected failure while executing cmd: {cmd}")
 
     def __update_state_in(self, update_in: float = 20, reason: str = None):
-        logger.debug(f'Scheduling update in {update_in}s {"due to " if reason else ""}{reason}')
+        """
+        Asks for a state refresh in update_in seconds. Safe to call from any thread: the reactor is not thread safe so
+        the scheduling itself is handed to the reactor thread.
+        """
         from twisted.internet import reactor
-        reactor.callLater(update_in, lambda: self.__queue.put_nowait(self.__update_state))
+        reactor.callFromThread(self.__schedule_update, update_in, reason)
+
+    def __schedule_update(self, update_in: float, reason: str = None):
+        """
+        Runs on the reactor thread. Only one refresh is ever pending: a request for a sooner one replaces it, a request
+        for a later one is dropped, so each refresh schedules exactly one successor and the cycles never multiply.
+        """
+        from twisted.internet import reactor
+        pending = self.__next_update
+        if pending is not None and pending.active():
+            if pending.getTime() <= reactor.seconds() + update_in:
+                logger.debug(f'Update already due sooner than {update_in}s, ignoring request [{reason}]')
+                return
+            pending.cancel()
+        logger.debug(f'Scheduling update in {update_in}s {"due to " if reason else ""}{reason}')
+        self.__next_update = reactor.callLater(update_in, self.__enqueue_update)
+
+    def __enqueue_update(self):
+        self.__next_update = None
+        self.__queue.put_nowait(self.__update_state)
 
     @property
     def state(self):
@@ -182,9 +208,7 @@ class PJController:
                 self.__connect()
                 val = self.__executor.get(cmd)
                 self.__disconnect()
-                if val is not None:
-                    return val.name if isinstance(val, Enum) else val.replace('"', '').strip()
-                return val
+                return self.__to_response(val)
             except KeyError:
                 logger.warning(f"Ignoring unknown command {command}")
                 return None
@@ -196,6 +220,21 @@ class PJController:
                 logger.exception(f"Unexpected failure while executing cmd: {command}")
                 self.__hard_disconnect()
                 return -1
+
+    @staticmethod
+    def __to_response(val):
+        """ Converts a value read from the PJ into something JSON serialisable. """
+        if val is None or isinstance(val, Enum):
+            return val.name if val is not None else None
+        if isinstance(val, str):
+            return val.replace('"', '').strip()
+        if isinstance(val, int):
+            # Numeric and its subclasses
+            return int(val)
+        if isinstance(val, list):
+            # binary data e.g. gamma tables
+            return list(val)
+        return str(val)
 
     def send(self, commands) -> SendResult:
         """
@@ -209,7 +248,12 @@ class PJController:
             sent = []
             for command in commands:
                 if command[0:5] == 'PAUSE':
-                    sleep_secs = float(command[5:])
+                    try:
+                        sleep_secs = float(command[5:])
+                    except ValueError:
+                        logger.error(f"Ignoring invalid pause {command}")
+                        result.unknown.append(command)
+                        continue
                     logger.info(f"Sleeping for {sleep_secs:.3f}")
                     sleep(sleep_secs)
                     continue

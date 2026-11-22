@@ -38,6 +38,11 @@ class Closed(Exception):
     pass
 
 
+class NotSent(Closed):
+    """The connection was found closed while sending a command, so the PJ never received it and it can be resent"""
+    pass
+
+
 class Timeout(Exception):
     """Command Timout"""
     pass
@@ -80,34 +85,29 @@ class Protocol:
         logger.debug(f"  > Cmd:{cmdtype} {cmdtype.value+cmd}")
         assert cmdtype == Header.operation or cmdtype == Header.reference
 
-        retry_count = 1
-
-        def do_send(f):
-            nonlocal retry_count
+        # a command that never reached the PJ is resent once on a fresh connection. Once it has been sent, a closed
+        # connection is an error: the PJ may have acted on it, so resending could act twice (e.g. a toggle)
+        attempts = 2
+        for attempt in range(1, attempts + 1):
+            if self.reconnect:
+                self.conn.reconnect()
+                self.reconnect = False
             try:
-                f()
-            except Closed:
+                self.__send_cmd(acktimeout, cmd, cmdtype)
+                self.__send_raw_data(cmd, cmdtype, sendrawdata)
+                return
+            except NotSent:
                 self.reconnect = True
-                if retry_count:
-                    logger.warning(f"Connection closed, retry {retry_count}")
-                    retry_count -= 1
-                else:
+                if attempt == attempts:
                     raise
-            except CommandNack:
+                logger.warning(f"Connection closed before Cmd:{cmdtype} {cmdtype.value+cmd} was sent, resending")
+            except (Closed, CommandNack):
                 self.reconnect = True
                 raise
             except:
                 self.reconnect = True
                 logger.exception(f"Unexpected exception for Cmd:{cmdtype} {cmdtype.value+cmd}")
                 raise
-
-        while True:
-            if self.reconnect:
-                self.conn.reconnect()
-                self.reconnect = False
-            do_send(lambda: self.__send_cmd(acktimeout, cmd, cmdtype))
-            do_send(lambda: self.__send_raw_data(cmd, cmdtype, sendrawdata))
-            break
 
     def __send_raw_data(self, cmd, cmdtype, sendrawdata):
         if sendrawdata is not None:
@@ -117,7 +117,10 @@ class Protocol:
 
     def __send_cmd(self, acktimeout, cmd, cmdtype):
         data = cmdtype.value + UNIT_ID + cmd + END
-        self.conn.send(data)
+        try:
+            self.conn.send(data)
+        except Closed as e:
+            raise NotSent(*e.args) from e
         if self.conn.expect(Header.ack.value + UNIT_ID + cmd[:2] + END, timeout=acktimeout) == -1:
             raise CommandNack(f"Command not acknowledged [{cmdtype} {data}]")
 
@@ -158,7 +161,7 @@ class Connection:
         self.__host = host
         self.__socket_timeout = socket_timeout
         if password is not None:
-            logger.info(f"Connecting to {host}:{port} using password: {password}")
+            logger.info(f"Connecting to {host}:{port} (with password)")
             import hashlib
             import struct
             m = hashlib.sha256(password.encode())
@@ -237,8 +240,9 @@ class Connection:
         if self.__socket:
             logger.debug(f"Sending {data} to {self.__host}:{self.__port}")
             try:
-                self.__socket.send(data)
-            except ConnectionAbortedError as err:
+                self.__socket.sendall(data)
+            except ConnectionError as err:
+                # aborted (mostly windows), reset or broken pipe (linux)
                 raise Closed(err)
         else:
             raise Error('Unable to send, not connected')

@@ -57,7 +57,7 @@ def main(args=None):
     import logging
     logger = logging.getLogger('twisted')
     from twisted.internet import reactor
-    from twisted.web.resource import Resource
+    from twisted.web.resource import Resource, NoResource
     from twisted.web import static, server
     from twisted.web.wsgi import WSGIResource
     from twisted.application import service
@@ -115,7 +115,14 @@ def main(args=None):
                 logger.info('No UI, API only')
             self.react = ReactApp(uiRoot)
             self.static = static.File(os.path.join(uiRoot, 'static'))
-            self.icons = static.File(cfg.iconPath)
+            if cfg.iconPath:
+                if os.path.realpath(cfg.iconPath) == os.path.realpath(os.path.expanduser('~')):
+                    logger.warning(f'iconPath is the home dir, everything in {cfg.iconPath} is served at /icons, '
+                                   f'point iconPath at a directory that only holds icons')
+                self.icons = static.File(cfg.iconPath)
+            else:
+                logger.info('No iconPath configured, icons will not be served')
+                self.icons = NoResource()
 
         def getChild(self, path, request):
             """
