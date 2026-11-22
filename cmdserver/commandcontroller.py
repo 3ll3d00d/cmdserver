@@ -11,7 +11,7 @@ class CommandController:
 
     def __init__(self, config):
         actual_commands = {commandId: command for commandId, command in config.commands.items() if commandId != 'defaults'}
-        defaults = config.commands['defaults'] if 'defaults' in config.commands else None
+        defaults = config.commands.get('defaults') or {}
         self.__commands = {command_id: self.__add_defaults(command_id, command, defaults) for command_id, command in actual_commands.items()}
         self.__launchers = {command_id: self.__get_launcher(command_id, command, defaults) for command_id, command in actual_commands.items()}
 
@@ -30,9 +30,14 @@ class CommandController:
     @staticmethod
     def __get_launcher(command_id, command, defaults):
         if 'remote' in command:
+            if 'remote_prefix' not in defaults:
+                raise ValueError(f"Command {command_id} is remote but commands.defaults.remote_prefix is not set")
             return RemoteCommandExecutor(f"{defaults['remote_prefix']}/{command_id}")
         else:
-            exe = defaults['exe'] if defaults is not None and 'exe' in defaults else command['exe']
+            # the command's own exe wins over the default
+            exe = command.get('exe', defaults.get('exe'))
+            if exe is None:
+                raise ValueError(f"Command {command_id} has no exe and commands.defaults.exe is not set")
             return local[exe][command['args']] if 'args' in command else local[exe]
 
     @property
@@ -45,7 +50,7 @@ class CommandController:
     def execute(self, command_id):
         command = self.get_command(command_id)
         if command is not None:
-            result = self.__launchers[command_id]['executor'].run(retcode=None)
+            result = self.__launchers[command_id].run(retcode=None)
             logger.info(f"Executed command {command_id}, result is {result[0]}")
             logger.info('Command output: ')
             logger.info(result[1])
@@ -58,10 +63,6 @@ class RemoteCommandExecutor:
     def __init__(self, address: str):
         self.__address = address
         logger.info(f"Created RemoteCommandExecutor for {self.__address}")
-
-    def __getitem__(self, item):
-        # hack to allow the execute command to work as expected
-        return self
 
     def run(self, **kwargs):
         r = requests.put(self.__address)

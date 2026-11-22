@@ -66,7 +66,8 @@ class Config:
         if os.path.exists(config_path):
             self.logger.warning("Loading config from " + config_path)
             with open(config_path, 'r') as yml:
-                return yaml.load(yml, Loader=yaml.FullLoader)
+                # an empty file loads as None
+                return yaml.load(yml, Loader=yaml.FullLoader) or {}
         default_config = self.load_default_config()
         self.__store_config(default_config, config_path)
         return default_config
@@ -87,13 +88,13 @@ class Config:
         Creates a default config bundle.
         :return:
         """
-        from pathlib import Path
         return {
             'debug': True,
             'debugLogging': True,
             'accessLogging': False,
             'port': 53199,
-            'iconPath': str(Path.home()),
+            # never the home dir: everything under iconPath is served over http
+            'iconPath': os.path.join(self.config_path, 'icons'),
             'commands': {},
             'pjmacros': {},
             'playingNowExe': None,
