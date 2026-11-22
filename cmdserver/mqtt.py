@@ -12,7 +12,7 @@ class MQTT:
         hostname = socket.gethostname()
         client_id = f'cmdserver-{hostname}'
         logger.info(f'Initialising MQTT client {client_id} to {ip}:{port}')
-        self.__client = mqtt.Client(client_id=client_id)
+        self.__client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
         self.__client.on_connect = self.__on_connect
         self.__client.on_message = self.__on_message
         self.__client.on_disconnect = self.__on_disconnect
@@ -26,16 +26,16 @@ class MQTT:
 
     def shutdown(self):
         logger.info('Shutting down MQTT client')
-        self.__client.loop_stop(force=True)
+        self.__client.loop_stop()
 
-    def __on_connect(self, client, userdata, flags, rc):
-        logger.info(f'Connected to MQTT [result: {rc}]')
+    def __on_connect(self, client, userdata, flags, reason_code, properties):
+        logger.info(f'Connected to MQTT [result: {reason_code}]')
 
     def __on_message(self, client, userdata, msg):
         logger.info(f'Received from {msg.topic} {msg.payload}')
 
-    def __on_disconnect(self, client, userdata, rc):
-        logger.warning(f'Disconnected from MQTT [result: {rc}]')
+    def __on_disconnect(self, client, userdata, flags, reason_code, properties):
+        logger.warning(f'Disconnected from MQTT [result: {reason_code}]')
 
     def __publish(self, source: str, payload):
         logger.info(f'Publishing {source} -- {payload}')
