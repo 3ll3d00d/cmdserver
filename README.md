@@ -107,7 +107,7 @@ Install
 * Docker: `ghcr.io/3ll3d00d/cmdserver` (`latest` = last release, `edge` = master, or a version e.g. `2.1.0`), for
   linux/amd64 and linux/arm64. It listens on 53199 and reads `cmdserver.yml` from `$CMDSERVER_CONFIG_HOME` if set,
   else `~/.cmdserver` (`/root/.cmdserver` in the container), so map a volume to one of those. It replaces
-  `ghcr.io/3ll3d00d/cmdserver-image`.
+  `ghcr.io/3ll3d00d/cmdserver-image`. The image carries the Unraid icon label (`img/icon.png`).
 
 Config is read from `$CMDSERVER_CONFIG_HOME/cmdserver.yml`, else `~/.cmdserver/cmdserver.yml`. A default config is
 written there on first start.
