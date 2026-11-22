@@ -151,5 +151,5 @@ class Config:
         v = 'UNKNOWN'
         if os.path.exists(v_name):
             with open(v_name, 'r') as f:
-                v = f.read()
+                v = f.read().strip()
         return v

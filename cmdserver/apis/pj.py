@@ -44,10 +44,12 @@ class UpdatePJ(Resource):
             payload = request.get_json()
             logger.info(f"Executing {payload}")
             result = self.__pj_controller.send(payload)
-            if result is None:
-                logger.info(f"Unknown command {payload}")
-                return None, 404
-            else:
-                return None, 200
+            if result.failed:
+                # the PJ refused or never acknowledged a command, even after retries
+                return {'failed': result.failed, 'unknown': result.unknown, 'errors': result.errors}, 500
+            if result.unknown:
+                logger.info(f"Unknown command(s) {result.unknown}")
+                return {'unknown': result.unknown}, 404
+            return None, 200
         else:
             return None, 501

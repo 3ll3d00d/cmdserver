@@ -9,13 +9,33 @@ from threading import Lock
 from time import sleep
 from typing import Optional, Tuple, Union, Any, Callable
 
-from cmdserver.debounce import debounce
 from cmdserver.jvc import CommandExecutor, CommandNack
 from cmdserver.jvccommands import Command, load_all_commands, Numeric, PowerState, \
-    READ_ONLY_RC, Model, InstallationMode
+    READ_ONLY_RC, Model, InstallationMode, RemoteCode
 from cmdserver.mqtt import MQTT
 
 logger = logging.getLogger('pjcontroller')
+
+# close the PJ connection once it has been unused for this long
+IDLE_DISCONNECT_SECS = 4
+# a command the PJ refuses (e.g. while it is still applying a picture mode change) is retried this many times in all
+COMMAND_ATTEMPTS = 3
+RETRY_DELAY_SECS = 1.5
+# remote codes that must only ever be sent once: a retry after a lost ack would act twice (toggles, menu navigation)
+NO_RETRY_RC = frozenset(READ_ONLY_RC) | frozenset(rc for rc in RemoteCode if rc.name.endswith('Toggle')) | {
+    RemoteCode.Back, RemoteCode.Input, RemoteCode.LensMenu, RemoteCode.Info_PictureAdjust, RemoteCode.Hide}
+
+
+class UnknownCommand(Exception):
+    pass
+
+
+@dataclass
+class SendResult:
+    values: list = field(default_factory=list)
+    unknown: list = field(default_factory=list)
+    failed: list = field(default_factory=list)
+    errors: list = field(default_factory=list)
 
 
 class PJController:
@@ -27,6 +47,9 @@ class PJController:
         self.__commands = load_all_commands()
         self.__queue = Queue()
         self.__lock = Lock()
+        self.__activity = 0
+        self.__idle_timer: Optional[threading.Timer] = None
+        self.__idle_timer_lock = Lock()
         self.__attributes = {
             'anamorphicMode': '',
             'installationMode': '',
@@ -125,12 +148,31 @@ class PJController:
     def __connect(self):
         self.__executor.connect()
 
-    @debounce(4)
     def __disconnect(self):
-        self.__executor.disconnect(fail=False)
+        """
+        Schedules the connection to close once it has been idle for IDLE_DISCONNECT_SECS. The caller must hold
+        self.__lock. Each call bumps the activity counter so a close scheduled by an earlier call is skipped if any
+        command has run since; the close itself also takes the lock so it can never cut off a command in flight.
+        """
+        self.__activity += 1
+        activity = self.__activity
+        with self.__idle_timer_lock:
+            if self.__idle_timer is not None:
+                self.__idle_timer.cancel()
+            self.__idle_timer = threading.Timer(IDLE_DISCONNECT_SECS, self.__close_if_idle, args=(activity,))
+            self.__idle_timer.daemon = True
+            self.__idle_timer.start()
 
-    @debounce(0.001)
+    def __close_if_idle(self, activity: int):
+        with self.__lock:
+            if activity == self.__activity:
+                self.__executor.disconnect(fail=False)
+            else:
+                logger.debug('Skipping idle disconnect, the connection has been used since it was scheduled')
+
     def __hard_disconnect(self):
+        """ Closes the connection now. The caller must hold self.__lock. """
+        self.__activity += 1
         self.__executor.disconnect(fail=False)
 
     def get(self, command):
@@ -148,40 +190,46 @@ class PJController:
                 return None
             except CommandNack:
                 logger.exception(f"Command NACKed - GET {command}")
+                self.__hard_disconnect()
                 return -1
             except:
                 logger.exception(f"Unexpected failure while executing cmd: {command}")
+                self.__hard_disconnect()
                 return -1
 
-    def send(self, commands):
-        """ Sends the commands to the PJ """
+    def send(self, commands) -> SendResult:
+        """
+        Sends the commands to the PJ, one at a time, in order. Concurrent callers are serialised by self.__lock so the
+        PJ only ever sees one command at a time. A command that fails (NACK, timeout, dropped connection) is retried
+        up to COMMAND_ATTEMPTS times, RETRY_DELAY_SECS apart, since the PJ refuses commands while it is still applying
+        the previous one (e.g. a picture mode change).
+        """
+        result = SendResult()
         with self.__lock:
             sent = []
-            vals = []
-            self.__connect()
             for command in commands:
                 if command[0:5] == 'PAUSE':
                     sleep_secs = float(command[5:])
                     logger.info(f"Sleeping for {sleep_secs:.3f}")
                     sleep(sleep_secs)
-                else:
-                    if command in self.__pj_macros:
-                        for cmd in self.__pj_macros[command]:
-                            c, e, v = self.__execute(cmd)
-                        if c and e:
-                            sent.append((c, e))
-                        if v:
-                            vals.append(v)
-                    else:
-                        c, e, v = self.__execute(command)
-                        if c and e:
-                            sent.append((c, e))
-                        if v:
-                            vals.append(v)
+                    continue
+                for cmd in self.__pj_macros.get(command, [command]):
+                    try:
+                        c, e, v = self.__execute_with_retry(cmd)
+                    except UnknownCommand:
+                        result.unknown.append(cmd)
+                        continue
+                    except Exception as ex:
+                        result.failed.append(cmd)
+                        result.errors.append(f'{cmd}: {ex!r}')
+                        continue
+                    sent.append((c, e))
+                    if v:
+                        result.values.append(v)
             self.__disconnect()
-            if self.__mqtt:
-                self.__update_state_if_necessary(sent)
-            return vals
+        if self.__mqtt and sent:
+            self.__update_state_if_necessary(sent)
+        return result
 
     def __update_state_if_necessary(self, sent):
         mutate_cmd = None
@@ -198,27 +246,49 @@ class PJController:
         else:
             logger.info(f'Info only, PJ state will not be updated')
 
-    def __execute(self, cmd) -> Tuple[Optional[Command], Optional[Union[Enum, Numeric]], any]:
-        tokens = cmd.split('.')
-        if len(tokens) > 1:
+    def __execute_with_retry(self, cmd) -> Tuple[Command, Union[Enum, Numeric], Any]:
+        """ The caller must hold self.__lock. Raises UnknownCommand, or the last error once all attempts fail. """
+        cmd_enum, tok = self.__parse(cmd)
+        # setting a value is idempotent so a failed attempt can safely be repeated, a toggle or navigation key isn't
+        attempts = 1 if cmd_enum == Command.Remote and tok in NO_RETRY_RC else COMMAND_ATTEMPTS
+        for attempt in range(1, attempts + 1):
             try:
-                cmd_enum = Command[tokens[0]]
-                if isinstance(cmd_enum.value, tuple):
-                    cmd_arg_enum = cmd_enum.value[1]
-                    if cmd_arg_enum.__name__ == tokens[1]:
-                        logger.info(f"Executing {cmd}")
-                        if issubclass(cmd_arg_enum, Enum):
-                            tok = cmd_arg_enum[tokens[2]]
-                            return cmd_enum, tok, self.__executor.set(cmd_enum, tok)
-                        elif issubclass(cmd_arg_enum, Numeric):
-                            tok = Numeric(int(tokens[2]))
-                            return cmd_enum, tok, self.__executor.set(cmd_enum, tok)
-                        else:
-                            logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
-            except (AttributeError, KeyError):
-                logger.exception(f"Ignoring unknown command {cmd}")
-            except:
-                logger.exception(f"Unexpected exception while processing {cmd}")
-        else:
+                logger.info(f"Executing {cmd}{f' (attempt {attempt})' if attempt > 1 else ''}")
+                self.__connect()  # no-op when already connected
+                return cmd_enum, tok, self.__executor.set(cmd_enum, tok)
+            except Exception:
+                if attempt == attempts:
+                    logger.exception(f"Failed to execute {cmd} after {attempt} attempts")
+                    self.__hard_disconnect()
+                    raise
+                logger.warning(f"Failed to execute {cmd} (attempt {attempt}), retrying in {RETRY_DELAY_SECS}s",
+                               exc_info=True)
+                self.__hard_disconnect()
+                sleep(RETRY_DELAY_SECS)
+
+    @staticmethod
+    def __parse(cmd) -> Tuple[Command, Union[Enum, Numeric]]:
+        """ Turns e.g. PictureMode.PictureMode.Natural into (Command.PictureMode, PictureMode.Natural). """
+        tokens = cmd.split('.')
+        if len(tokens) != 3:
             logger.error(f"Ignoring unknown command {cmd}")
-        return None, None, None
+            raise UnknownCommand(cmd)
+        try:
+            cmd_enum = Command[tokens[0]]
+        except KeyError:
+            logger.error(f"Ignoring unknown command {cmd}")
+            raise UnknownCommand(cmd)
+        if not isinstance(cmd_enum.value, tuple) or cmd_enum.value[1].__name__ != tokens[1]:
+            logger.error(f"Ignoring unknown command {cmd}")
+            raise UnknownCommand(cmd)
+        cmd_arg_enum = cmd_enum.value[1]
+        try:
+            if issubclass(cmd_arg_enum, Enum):
+                return cmd_enum, cmd_arg_enum[tokens[2]]
+            if issubclass(cmd_arg_enum, Numeric):
+                return cmd_enum, Numeric(int(tokens[2]))
+        except (KeyError, ValueError):
+            logger.error(f"Ignoring unknown value in {cmd}")
+            raise UnknownCommand(cmd)
+        logger.warning(f"Unsupported value type for {cmd} - {cmd_arg_enum.__name__}")
+        raise UnknownCommand(cmd)
