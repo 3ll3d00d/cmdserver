@@ -1,0 +1,89 @@
+name: docker
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '[0-9]*'
+    paths-ignore:
+      - README.md
+      - AGENTS.md
+      - ahk/**
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+jobs:
+  build-and-push:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    # A normal multi-arch build takes a few minutes; fail a hung build fast instead of waiting out GitHub's 6h default.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # setuptools-scm needs history + tags to derive a dev version on branch builds.
+          fetch-depth: 0
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.13
+      # Write cmdserver/VERSION so the image reports a meaningful version via /api/1/version, and pass the same
+      # value to the Dockerfile as the package version (the build context excludes .git, so hatch-vcs can't
+      # derive it there). Tag pushes get the released version (e.g. "2.1.0"). Branch and manual-dispatch pushes
+      # get a setuptools-scm dev version (e.g. "2.1.1.dev5+g5341b1d") so nobody mistakes an unreleased build for
+      # a release.
+      - name: Set version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            pip install --quiet setuptools-scm
+            VERSION=$(python -m setuptools_scm)
+          fi
+          echo "$VERSION" > cmdserver/VERSION
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "VERSION stamped: $VERSION"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=edge,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CMDSERVER_VERSION=${{ steps.version.outputs.version }}
+            REPO_URL=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

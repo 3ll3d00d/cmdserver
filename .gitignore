@@ -70,7 +70,6 @@ target/
 .ipynb_checkpoints
 
 # pyenv
-.python-version
 
 # celery beat schedule file
 celerybeat-schedule
@@ -112,3 +111,5 @@ ezmote/
 cmdserver/VERSION
 scratch/
 cmdserver/ui
+# ruff
+.ruff_cache/
