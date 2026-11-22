@@ -9,6 +9,7 @@ on:
       - README.md
       - AGENTS.md
       - ahk/**
+      - img/**
   workflow_dispatch:
 defaults:
   run:

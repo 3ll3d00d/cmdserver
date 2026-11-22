@@ -20,8 +20,10 @@ VOLUME ["/config"]
 # OCI image annotations. image.source lets GHCR link the package to its GitHub repo on push.
 ARG REPO_URL=""
 ARG REPO_DESCRIPTION="cmdserver: web based home cinema automation, including JVC projector control"
+# net.unraid.docker.icon gives the container its icon in the Unraid Docker tab without a `-l` on the run command.
 LABEL org.opencontainers.image.source=$REPO_URL \
-      org.opencontainers.image.description=$REPO_DESCRIPTION
+      org.opencontainers.image.description=$REPO_DESCRIPTION \
+      net.unraid.docker.icon="https://raw.githubusercontent.com/3ll3d00d/cmdserver/master/img/icon.png"
 
 EXPOSE 53199
 
